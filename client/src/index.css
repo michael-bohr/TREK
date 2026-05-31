@@ -734,7 +734,7 @@ img[alt="TREK"] {
 .dark .min-h-screen { background-color: var(--bg-primary) !important; }
 
 /* Modal-Hintergrund */
-.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
+.dark .trek-modal-backdrop { background: rgba(0,0,0,0.6); }
 
 /* ── Dark: Fallback für Komponenten die noch nicht auf CSS-Variablen umgestellt sind ── */
 .dark {
@@ -766,8 +766,8 @@ img[alt="TREK"] {
   animation: slide-out-right 0.3s ease-in forwards;
 }
 
-/* Modal-Hintergrund */
-.modal-backdrop {
+/* Modal-Hintergrund (eigener Namespace, sonst blenden Content-Blocker .modal-backdrop aus) */
+.trek-modal-backdrop {
   backdrop-filter: blur(4px);
 }
 
