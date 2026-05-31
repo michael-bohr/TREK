@@ -242,6 +242,33 @@ describe('generateDays', () => {
     const nums = daysAfter.map(d => d.day_number).sort((a, b) => a - b);
     expect(nums).toEqual([1, 2, 3, 4, 5]);
   });
+
+  it('TRIP-SVC-017: switching a dateless trip to a shorter dated range drops empty leftover days but keeps ones with content (#1083)', () => {
+    const { user } = createUser(testDb);
+    // A 7-day trip, then cleared to dateless placeholders (day_count = 7).
+    const trip = createTrip(testDb, user.id, { start_date: '2025-12-01', end_date: '2025-12-07' });
+    generateDays(trip.id, null, null);
+    const dateless = getDays(trip.id);
+    expect(dateless).toHaveLength(7);
+    expect(dateless.every(d => d.date === null)).toBe(true);
+
+    // Give the LAST dateless day real content so it must be preserved.
+    const place = createPlace(testDb, trip.id);
+    const assignment = createDayAssignment(testDb, dateless[6].id, place.id);
+
+    // Now set an explicit 2-day range. The first two dateless days are reused for
+    // the dates; the four empty leftovers must be removed, the one with content kept.
+    generateDays(trip.id, '2026-01-10', '2026-01-11');
+
+    const daysAfter = getDays(trip.id);
+    const dated = daysAfter.filter(d => d.date !== null);
+    const stillDateless = daysAfter.filter(d => d.date === null);
+    expect(dated.map(d => d.date)).toEqual(['2026-01-10', '2026-01-11']);
+    // day_count is COUNT(*) FROM days: 2 dated + 1 content-bearing dateless = 3 (not the stale 7)
+    expect(daysAfter).toHaveLength(3);
+    expect(stillDateless).toHaveLength(1);
+    expect(getAssignments(stillDateless[0].id)[0].id).toBe(assignment.id);
+  });
 });
 
 describe('exportICS', () => {

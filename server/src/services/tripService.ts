@@ -122,12 +122,26 @@ export function generateDays(tripId: number | bigint | string, startDate: string
     del.run(dated[i].id);
   }
 
-  // Any remaining unused dateless days: keep as dateless, just renumber.
+  // Any remaining unused dateless days: drop the empty placeholders so day_count
+  // reflects the dated range, but keep ones that still hold content (assignments,
+  // notes, accommodations) — mirrors the dateless-path trimming above (#1083).
   // Base must be max(targetDates.length, dated.length) to avoid colliding with
   // positives already assigned by the main loop or the overflow loop above.
+  const isEmptyDay = db.prepare(
+    `SELECT NOT EXISTS (SELECT 1 FROM day_assignments da WHERE da.day_id = @id)
+          AND NOT EXISTS (SELECT 1 FROM day_notes dn WHERE dn.day_id = @id)
+          AND NOT EXISTS (SELECT 1 FROM day_accommodations dac WHERE dac.start_day_id = @id OR dac.end_day_id = @id) AS empty`
+  );
   const maxAssigned = Math.max(targetDates.length, dated.length);
+  let keptDateless = 0;
   for (let i = datelessIdx; i < dateless.length; i++) {
-    setDayNumber.run(maxAssigned + (i - datelessIdx) + 1, dateless[i].id);
+    const empty = (isEmptyDay.get({ id: dateless[i].id }) as { empty: number }).empty;
+    if (empty) {
+      del.run(dateless[i].id);
+    } else {
+      setDayNumber.run(maxAssigned + keptDateless + 1, dateless[i].id);
+      keptDateless++;
+    }
   }
 
   // Final renumber to compact and eliminate any gaps/negatives
