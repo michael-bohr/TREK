@@ -117,7 +117,7 @@ export class PlacesController {
     if (!importWaypoints && !importRoutes && !importTracks) {
       throw new HttpException({ error: 'No import types selected' }, 400);
     }
-    const result = this.places.importGpx(tripId, file.buffer, { importWaypoints, importRoutes, importTracks });
+    const result = this.places.importGpx(tripId, file.buffer, { importWaypoints, importRoutes, importTracks, defaultName: file.originalname });
     if (!result) {
       throw new HttpException({ error: 'No matching places found in GPX file' }, 400);
     }

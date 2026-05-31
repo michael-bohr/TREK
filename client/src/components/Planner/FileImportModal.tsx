@@ -31,7 +31,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
   const loadTrip = useTripStore((s) => s.loadTrip)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -51,7 +51,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
   }
 
   const reset = () => {
-    setFile(null)
+    setFiles([])
     setIsDragOver(false)
     setLoading(false)
     setError('')
@@ -67,14 +67,14 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
     if (initialFile) {
       const err = validateFile(initialFile)
       if (err) {
-        setFile(null)
+        setFiles([])
         setError(err)
       } else {
-        setFile(initialFile)
+        setFiles([initialFile])
         setError('')
       }
     } else {
-      setFile(null)
+      setFiles([])
       setError('')
     }
   // validateFile uses t() which is stable — intentionally omitted from deps
@@ -86,22 +86,32 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
     onClose()
   }
 
-  const selectFile = (f: File) => {
-    const validationError = validateFile(f)
-    if (validationError) {
-      setError(validationError)
-      setFile(null)
+  const selectFiles = (incoming: File[]) => {
+    if (incoming.length === 0) return
+    const valid: File[] = []
+    let firstError: string | null = null
+    for (const f of incoming) {
+      const validationError = validateFile(f)
+      if (validationError) {
+        firstError = firstError ?? validationError
+        continue
+      }
+      valid.push(f)
+    }
+    if (valid.length === 0) {
+      setError(firstError ?? '')
+      setFiles([])
       return
     }
-    setFile(f)
-    setError('')
+    setFiles(valid)
+    setError(firstError ?? '')
     setSummary(null)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
+    const list = e.target.files ? Array.from(e.target.files) : []
     e.target.value = ''
-    if (f) selectFile(f)
+    if (list.length) selectFiles(list)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -116,71 +126,92 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-    const f = e.dataTransfer.files[0]
-    if (f) selectFile(f)
+    const list = Array.from(e.dataTransfer.files)
+    if (list.length) selectFiles(list)
   }
 
   const handleImport = async () => {
-    if (!file || loading) return
-    const ext = file.name.toLowerCase().split('.').pop()
+    if (files.length === 0 || loading) return
     setLoading(true)
     setError('')
     setSummary(null)
 
-    try {
-      if (ext === 'gpx') {
-        const result = await placesApi.importGpx(tripId, file, gpxOpts)
-        await loadTrip(tripId)
-        if (result.count === 0 && result.skipped > 0) {
-          toast.warning(t('places.importAllSkipped'))
+    let totalCreated = 0
+    let totalSkipped = 0
+    const createdIds: number[] = []
+    const errors: string[] = []
+    let mergedSummary: PlacesImportSummary | null = null
+    let importedGpx = false
+    let importedKml = false
+
+    for (const f of files) {
+      const ext = f.name.toLowerCase().split('.').pop()
+      try {
+        if (ext === 'gpx') {
+          importedGpx = true
+          const result = await placesApi.importGpx(tripId, f, gpxOpts)
+          totalCreated += result.count ?? 0
+          totalSkipped += result.skipped ?? 0
+          if (result.places?.length > 0) createdIds.push(...result.places.map((p: { id: number }) => p.id))
         } else {
-          toast.success(t('places.gpxImported', { count: result.count }))
+          importedKml = true
+          const result = await placesApi.importMapFile(tripId, f, kmlOpts)
+          totalCreated += result.count ?? 0
+          if (result.places?.length > 0) createdIds.push(...result.places.map((p: { id: number }) => p.id))
+          const s = result.summary as PlacesImportSummary | undefined
+          if (s) {
+            mergedSummary = mergedSummary
+              ? {
+                  totalPlacemarks: mergedSummary.totalPlacemarks + s.totalPlacemarks,
+                  createdCount: mergedSummary.createdCount + s.createdCount,
+                  skippedCount: mergedSummary.skippedCount + s.skippedCount,
+                  warnings: [...mergedSummary.warnings, ...(s.warnings ?? [])],
+                  errors: [...mergedSummary.errors, ...(s.errors ?? [])],
+                }
+              : s
+            totalSkipped += s.skippedCount ?? 0
+          }
         }
-        if (result.places?.length > 0) {
-          const importedIds: number[] = result.places.map((p: { id: number }) => p.id)
-          pushUndo?.(t('undo.importGpx'), async () => {
-            try { await placesApi.bulkDelete(tripId, importedIds) } catch {}
-            await loadTrip(tripId)
-          })
-        }
-        handleClose()
-      } else {
-        const result = await placesApi.importMapFile(tripId, file, kmlOpts)
-        await loadTrip(tripId)
-        setSummary(result.summary || null)
-        if (result.count === 0 && (result.summary?.skippedCount ?? 0) > 0) {
-          toast.warning(t('places.importAllSkipped'))
-        } else {
-          toast.success(t('places.kmlKmzImported', { count: result.count }))
-        }
-        if (result.summary?.errors?.length > 0) {
-          setError(result.summary.errors.join('\n'))
-        }
-        if (result.places?.length > 0) {
-          const importedIds: number[] = result.places.map((p: { id: number }) => p.id)
-          pushUndo?.(t('undo.importKeyholeMarkup'), async () => {
-            try { await placesApi.bulkDelete(tripId, importedIds) } catch {}
-            await loadTrip(tripId)
-          })
-        }
+      } catch (err: any) {
+        const message = err?.response?.data?.error || t('places.importFileError')
+        errors.push(files.length > 1 ? `${f.name}: ${message}` : message)
       }
-    } catch (err: any) {
-      const responseSummary = err?.response?.data?.summary as PlacesImportSummary | undefined
-      if (responseSummary) setSummary(responseSummary)
-      const message = err?.response?.data?.error || t('places.importFileError')
-      setError(message)
-      toast.error(message)
-    } finally {
-      setLoading(false)
     }
+
+    await loadTrip(tripId)
+
+    if (createdIds.length > 0) {
+      pushUndo?.(importedGpx && !importedKml ? t('undo.importGpx') : t('undo.importKeyholeMarkup'), async () => {
+        try { await placesApi.bulkDelete(tripId, createdIds) } catch {}
+        await loadTrip(tripId)
+      })
+    }
+
+    if (totalCreated > 0) {
+      const key = importedKml && !importedGpx ? 'places.kmlKmzImported' : 'places.gpxImported'
+      toast.success(t(key, { count: totalCreated }))
+    } else if (totalSkipped > 0 && errors.length === 0) {
+      toast.warning(t('places.importAllSkipped'))
+    }
+
+    if (mergedSummary) setSummary(mergedSummary)
+    if (errors.length > 0) {
+      setError(errors.join('\n'))
+      toast.error(errors[0])
+    }
+
+    setLoading(false)
+
+    // Close once everything succeeded and there's no KML summary left to surface.
+    if (errors.length === 0 && !mergedSummary) handleClose()
   }
 
-  const fileExt = file?.name.toLowerCase().split('.').pop() ?? ''
-  const isGpx = fileExt === 'gpx'
-  const isKml = fileExt === 'kml' || fileExt === 'kmz'
+  const exts = files.map(f => f.name.toLowerCase().split('.').pop() ?? '')
+  const isGpx = exts.includes('gpx')
+  const isKml = exts.some(e => e === 'kml' || e === 'kmz')
   const gpxNoneSelected = isGpx && !gpxOpts.waypoints && !gpxOpts.routes && !gpxOpts.tracks
   const kmlNoneSelected = isKml && !kmlOpts.points && !kmlOpts.paths
-  const canImport = !!file && !loading && !gpxNoneSelected && !kmlNoneSelected
+  const canImport = files.length > 0 && !loading && !gpxNoneSelected && !kmlNoneSelected
 
   if (!isOpen) return null
 
@@ -206,6 +237,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           ref={fileInputRef}
           type="file"
           accept=".gpx,.kml,.kmz"
+          multiple
           style={{ display: 'none' }}
           onChange={handleInputChange}
         />
@@ -240,8 +272,8 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           <Upload size={18} strokeWidth={1.8} color={isDragOver ? 'var(--accent)' : 'var(--text-faint)'} style={{ pointerEvents: 'none' }} />
           {isDragOver ? (
             <span className="text-accent" style={{ pointerEvents: 'none' }}>{t('places.importFileDropActive')}</span>
-          ) : file ? (
-            <span style={{ color: 'var(--text-primary)', textAlign: 'center', wordBreak: 'break-all', pointerEvents: 'none' }}>{file.name}</span>
+          ) : files.length > 0 ? (
+            <span style={{ color: 'var(--text-primary)', textAlign: 'center', wordBreak: 'break-all', pointerEvents: 'none' }}>{files.map(f => f.name).join(', ')}</span>
           ) : (
             <span style={{ color: 'var(--text-faint)', textAlign: 'center', pointerEvents: 'none' }}>{t('places.importFileDropHere')}</span>
           )}
