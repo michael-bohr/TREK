@@ -346,6 +346,8 @@ export interface GpxImportOptions {
   importWaypoints?: boolean;
   importRoutes?: boolean;
   importTracks?: boolean;
+  /** Source filename used to name unnamed routes/tracks (keeps multiple imports distinct). */
+  defaultName?: string;
 }
 
 export interface KmlImportOptions {
@@ -354,7 +356,7 @@ export interface KmlImportOptions {
 }
 
 export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}) {
-  const { importWaypoints = true, importRoutes = true, importTracks = true } = opts;
+  const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
 
   const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
   const gpx = parsed?.gpx;
@@ -362,6 +364,20 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
 
   const str = (v: unknown) => (v != null ? String(v).trim() : null);
   const num = (v: unknown) => { const n = parseFloat(String(v)); return isNaN(n) ? null : n; };
+
+  // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
+  // same generic label, so name-based dedup drops every import after the first. Derive a
+  // base from the source filename (the requested behaviour) and suffix an index so multiple
+  // geometries from one file stay distinct.
+  const rawName = str(defaultName);
+  const baseName = rawName ? rawName.replace(/\.[^.]+$/, '').trim() || rawName : null;
+  let geoSeq = 0;
+  const geoName = (explicit: string | null, fallback: string): string => {
+    if (explicit) return explicit;
+    geoSeq++;
+    const base = baseName || fallback;
+    return geoSeq === 1 ? base : `${base} ${geoSeq}`;
+  };
 
   type WaypointEntry = { name: string; lat: number; lng: number; description: string | null; routeGeometry?: string };
   const waypoints: WaypointEntry[] = [];
@@ -385,7 +401,7 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
       if (pts.length === 0) continue;
       const hasAllEle = pts.every(p => p.ele !== null);
       const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-      waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: str(rte.name) || 'GPX Route', description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
+      waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
     }
   }
 
@@ -405,7 +421,7 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
       const start = trackPoints[0];
       const hasAllEle = trackPoints.every(p => p.ele !== null);
       const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-      waypoints.push({ lat: start.lat, lng: start.lng, name: str(trk.name) || 'GPX Track', description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
+      waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
     }
   }
 

@@ -10,6 +10,7 @@ import JourneyShareSection from './JourneyShareSection'
 import type { JourneyDetail } from '../../store/journeyStore'
 import { pickGradient } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { AddTripDialog } from './JourneyDetailPageAddTripDialog'
+import { normalizeImageFile } from '../../utils/convertHeic'
 
 export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh }: {
   journey: JourneyDetail
@@ -49,7 +50,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
     const file = e.target.files?.[0]
     if (!file) return
     const formData = new FormData()
-    formData.append('cover', file)
+    formData.append('cover', await normalizeImageFile(file))
     try {
       await journeyApi.uploadCover(journey.id, formData)
       toast.success(t('journey.settings.coverUpdated'))

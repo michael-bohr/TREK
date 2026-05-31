@@ -534,13 +534,18 @@ const geocodingInFlight = new Set<number>();
 
 const regionCache = new Map<string, RegionInfo | null>();
 
-async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInfo | null> {
-  const key = roundKey(lat, lng);
-  if (regionCache.has(key)) return regionCache.get(key)!;
+// A zoom-8 reverse geocode of a GB place only resolves to the constituent country
+// (England/Scotland/Wales/Northern Ireland). Natural Earth's admin-1 polygons for GB
+// are counties and boroughs, so those four codes match no polygon and never highlight.
+const GB_CONSTITUENT_CODES = new Set(['GB-ENG', 'GB-SCT', 'GB-WLS', 'GB-NIR']);
+
+// Returns the OSM address object, {} for an "ok but empty" response (so it is cached as
+// a definitive miss), or null for a transient failure (so it is retried next time).
+async function fetchNominatimAddress(lat: number, lng: number, zoom: number): Promise<Record<string, string> | null> {
   await throttleNominatim();
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=8&accept-language=en`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=${zoom}&accept-language=en`,
       {
         headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
         signal: AbortSignal.timeout(10_000),
@@ -548,25 +553,50 @@ async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInf
     );
     if (!res.ok) return null;
     const data = await res.json() as { address?: Record<string, string> };
-    const countryCode = data.address?.country_code?.toUpperCase() || null;
-    // Try finest ISO level first (lvl6 = departments/provinces), then lvl5, then lvl4 (states/regions)
-    let regionCode = data.address?.['ISO3166-2-lvl6'] || data.address?.['ISO3166-2-lvl5'] || data.address?.['ISO3166-2-lvl4'] || null;
-    // Normalize: FR-75C → FR-75 (strip trailing letter suffixes for GeoJSON compatibility)
-    if (regionCode && /^[A-Z]{2}-\d+[A-Z]$/i.test(regionCode)) {
-      regionCode = regionCode.replace(/[A-Z]$/i, '');
-    }
-    const regionName = data.address?.state || data.address?.province || data.address?.region || data.address?.county || data.address?.city || null;
-    if (!countryCode || !regionName) { regionCache.set(key, null); return null; }
-    const info: RegionInfo = {
-      country_code: countryCode,
-      region_code: regionCode || `${countryCode}-${regionName.substring(0, 3).toUpperCase()}`,
-      region_name: regionName,
-    };
-    regionCache.set(key, info);
-    return info;
+    return data.address ?? {};
   } catch {
     return null;
   }
+}
+
+function buildRegionInfo(address: Record<string, string>, preferFinest: boolean): RegionInfo | null {
+  const countryCode = address.country_code?.toUpperCase() || null;
+  // Coarse path (almost every country) lands on the admin-1 level that matches Natural
+  // Earth directly; the finest path is used only to rescue codes that are too broad.
+  let regionCode = preferFinest
+    ? (address['ISO3166-2-lvl8'] || address['ISO3166-2-lvl7'] || address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || null)
+    : (address['ISO3166-2-lvl6'] || address['ISO3166-2-lvl5'] || address['ISO3166-2-lvl4'] || null);
+  // Normalize: FR-75C → FR-75 (strip trailing letter suffixes for GeoJSON compatibility)
+  if (regionCode && /^[A-Z]{2}-\d+[A-Z]$/i.test(regionCode)) {
+    regionCode = regionCode.replace(/[A-Z]$/i, '');
+  }
+  const regionName = preferFinest
+    ? (address.city || address.county || address.state_district || address.borough || address.state || address.province || address.region || null)
+    : (address.state || address.province || address.region || address.county || address.city || null);
+  if (!countryCode || !regionName) return null;
+  return {
+    country_code: countryCode,
+    region_code: regionCode || `${countryCode}-${regionName.substring(0, 3).toUpperCase()}`,
+    region_name: regionName,
+  };
+}
+
+async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInfo | null> {
+  const key = roundKey(lat, lng);
+  if (regionCache.has(key)) return regionCache.get(key)!;
+  const address = await fetchNominatimAddress(lat, lng, 8);
+  if (!address) return null; // transient failure — leave uncached so a later call retries
+  let info = buildRegionInfo(address, false);
+  // GB constituent-country codes map to no admin-1 polygon, so re-resolve them at a finer
+  // zoom where Nominatim exposes the county/borough code (GB-LND, GB-MAN, GB-CON, …) that
+  // the polygons actually carry.
+  if (info && info.country_code === 'GB' && GB_CONSTITUENT_CODES.has(info.region_code)) {
+    const finerAddress = await fetchNominatimAddress(lat, lng, 10);
+    const finer = finerAddress ? buildRegionInfo(finerAddress, true) : null;
+    if (finer && !GB_CONSTITUENT_CODES.has(finer.region_code)) info = finer;
+  }
+  regionCache.set(key, info);
+  return info;
 }
 
 export async function getVisitedRegions(userId: number): Promise<{ regions: Record<string, { code: string; name: string; placeCount: number }[]> }> {

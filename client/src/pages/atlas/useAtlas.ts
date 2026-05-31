@@ -141,7 +141,10 @@ export function useAtlas() {
         for (const f of geo.features) {
           const a2 = f.properties?.ISO_A2
           const a3 = f.properties?.ADM0_A3 || f.properties?.ISO_A3
-          if (a2 && a3 && a2 !== '-99' && a3 !== '-99' && !A2_TO_A3[a2]) {
+          // Only real 2-letter ISO codes: natural-earth uses subdivision-style
+          // values like "CN-TW" for Taiwan, which would otherwise overwrite the
+          // legitimate TWN->TW reverse mapping and break the country (#1049).
+          if (a2 && a3 && a2.length === 2 && a2 !== '-99' && a3 !== '-99' && !A2_TO_A3[a2]) {
             A2_TO_A3[a2] = a3
           }
         }
@@ -619,7 +622,7 @@ export function useAtlas() {
     try {
       const result = await mapsApi.search(bucketSearch, language)
       setBucketSearchResults(result.places || [])
-    } catch {} finally { setBucketSearching(false) }
+    } catch (err) { console.error('Bucket-list place search failed:', err) } finally { setBucketSearching(false) }
   }
 
   const handleSelectBucketPoi = (result: any) => {

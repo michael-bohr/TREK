@@ -52,7 +52,11 @@ export class PlacesService {
     return svc.deletePlacesMany(tripId, ids);
   }
 
-  importGpx(tripId: string, buffer: Buffer, opts: { importWaypoints: boolean; importRoutes: boolean; importTracks: boolean }) {
+  importGpx(
+    tripId: string,
+    buffer: Buffer,
+    opts: { importWaypoints: boolean; importRoutes: boolean; importTracks: boolean; defaultName?: string },
+  ) {
     return svc.importGpx(tripId, buffer, opts);
   }
 

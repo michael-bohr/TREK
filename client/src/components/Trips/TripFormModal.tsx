@@ -8,6 +8,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
+import { normalizeImageFile } from '../../utils/convertHeic'
 import type { Trip } from '../../types'
 import type { TripCreateRequest } from '@trek/shared'
 
@@ -141,15 +142,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
-  const handleCoverSelect = (file) => {
+  const handleCoverSelect = async (file) => {
     if (!file) return
+    // HEIC/HEIF from iOS can't be rendered or stored as-is — convert to JPEG first
+    const normalized = await normalizeImageFile(file)
     if (isEditing && trip?.id) {
       // Existing trip: upload immediately
-      uploadCoverNow(file)
+      uploadCoverNow(normalized)
     } else {
       // New trip: stage for upload after creation
-      setPendingCoverFile(file)
-      setCoverPreview(URL.createObjectURL(file))
+      setPendingCoverFile(normalized)
+      setCoverPreview(URL.createObjectURL(normalized))
     }
   }
 

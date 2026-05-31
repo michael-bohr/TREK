@@ -505,4 +505,33 @@ describe('getVisitedRegions', () => {
     const codes = result.regions['FR'].map((r: any) => r.code);
     expect(codes).toContain('FR-75');
   });
+
+  it('ATLAS-UNIT-021: GB places resolving to a constituent country are re-resolved to the finer admin-1 code', async () => {
+    vi.useFakeTimers();
+    // A zoom-8 lookup only yields the constituent country (GB-ENG); the zoom-10 lookup
+    // exposes the borough code (GB-MAN) that Natural Earth's polygons actually carry.
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve({
+      ok: true,
+      json: async () => ({
+        address: url.includes('zoom=10')
+          ? { country_code: 'gb', 'ISO3166-2-lvl8': 'GB-MAN', city: 'Manchester', state: 'England', 'ISO3166-2-lvl4': 'GB-ENG' }
+          : { country_code: 'gb', 'ISO3166-2-lvl4': 'GB-ENG', state: 'England' },
+      }),
+    })));
+
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Manchester Trip' });
+    insertPlaceWithCoords(testDb, trip.id, 'Old Trafford', 53.4631, -2.2913);
+
+    await getVisitedRegions(user.id);
+    await vi.runAllTimersAsync();
+    const result = await getVisitedRegions(user.id);
+
+    expect(result.regions['GB']).toBeDefined();
+    const codes = result.regions['GB'].map((r: any) => r.code);
+    expect(codes).toContain('GB-MAN');
+    expect(codes).not.toContain('GB-ENG');
+
+    vi.useRealTimers();
+  });
 });

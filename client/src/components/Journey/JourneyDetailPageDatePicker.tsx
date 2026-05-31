@@ -15,7 +15,8 @@ export function DatePicker({ value, onChange, tripDates }: {
   })
 
   const daysInMonth = new Date(viewMonth.year, viewMonth.month + 1, 0).getDate()
-  const firstDow = new Date(viewMonth.year, viewMonth.month, 1).getDay()
+  // Monday-first, matching CustomDateTimePicker / VacayCalendar (getDay() is Sunday=0).
+  const firstDow = (new Date(viewMonth.year, viewMonth.month, 1).getDay() + 6) % 7
   const monthName = new Date(viewMonth.year, viewMonth.month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 
   const prevMonth = () => {
@@ -68,7 +69,7 @@ export function DatePicker({ value, onChange, tripDates }: {
 
             {/* Weekday headers */}
             <div className="grid grid-cols-7 mb-1">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, i) => (
+              {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d, i) => (
                 <div key={i} className="text-center text-[10px] font-medium text-zinc-400 py-1">{d}</div>
               ))}
             </div>
