@@ -297,6 +297,30 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'makine',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkey’ler',
+  'settings.passkey.description':
+    'Passkey ile daha hızlı ve kimlik avına dayanıklı şekilde oturum açın — parmak iziniz, yüzünüz, PIN’iniz veya bir donanım anahtarı. Şifreniz yedek olarak kalır.',
+  'settings.passkey.notConfigured':
+    'Passkey’ler etkin ancak bu sunucuda henüz tam olarak yapılandırılmadı. WebAuthn alan adını ayarlaması için yöneticinize başvurun.',
+  'settings.passkey.add': 'Passkey ekle',
+  'settings.passkey.addTitle': 'Passkey ekle',
+  'settings.passkey.passwordPrompt':
+    'Mevcut şifrenizi onaylayın, ardından cihazınızın istemini izleyin.',
+  'settings.passkey.passwordRequired': 'Mevcut şifreniz gerekli.',
+  'settings.passkey.namePlaceholder': 'Ad (isteğe bağlı, ör. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey eklendi',
+  'settings.passkey.added': 'Eklendi',
+  'settings.passkey.addError': 'Passkey eklenemedi',
+  'settings.passkey.cancelled': 'Passkey kurulumu iptal edildi',
+  'settings.passkey.deleted': 'Passkey kaldırıldı',
+  'settings.passkey.deleteConfirm':
+    'Bu passkey kaldırılsın mı? Şifrenizle onaylayın.',
+  'settings.passkey.rename': 'Yeniden adlandır',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Senkronize edildi',
+  'settings.passkey.deviceBound': 'Bu cihaz',
+  'settings.passkey.lastUsed': 'Son kullanım',
+  'settings.passkey.neverUsed': 'Hiç kullanılmadı',
 };
 
 export default settings;

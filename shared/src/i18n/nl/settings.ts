@@ -296,6 +296,30 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkeys',
+  'settings.passkey.description':
+    'Log sneller en phishingbestendig in met een passkey — je vingerafdruk, gezicht, pincode of een hardwaresleutel. Je wachtwoord blijft als back-up bestaan.',
+  'settings.passkey.notConfigured':
+    'Passkeys zijn ingeschakeld maar nog niet volledig geconfigureerd op deze server. Vraag je beheerder om het WebAuthn-domein in te stellen.',
+  'settings.passkey.add': 'Een passkey toevoegen',
+  'settings.passkey.addTitle': 'Een passkey toevoegen',
+  'settings.passkey.passwordPrompt':
+    'Bevestig je huidige wachtwoord en volg daarna de aanwijzingen van je apparaat.',
+  'settings.passkey.passwordRequired': 'Je huidige wachtwoord is vereist.',
+  'settings.passkey.namePlaceholder': 'Naam (optioneel, bijv. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey toegevoegd',
+  'settings.passkey.added': 'Toegevoegd',
+  'settings.passkey.addError': 'Passkey kon niet worden toegevoegd',
+  'settings.passkey.cancelled': 'Passkey instellen geannuleerd',
+  'settings.passkey.deleted': 'Passkey verwijderd',
+  'settings.passkey.deleteConfirm':
+    'Deze passkey verwijderen? Bevestig met je wachtwoord.',
+  'settings.passkey.rename': 'Naam wijzigen',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Gesynchroniseerd',
+  'settings.passkey.deviceBound': 'Dit apparaat',
+  'settings.passkey.lastUsed': 'Laatst gebruikt',
+  'settings.passkey.neverUsed': 'Nooit gebruikt',
 };
 
 export default settings;

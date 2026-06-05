@@ -354,5 +354,23 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     'Trip tracking & travel journal with check-ins, photos, and daily stories',
+  'admin.passkey.title': 'Passkey login',
+  'admin.passkey.cardHint': 'Let users sign in with passkeys (WebAuthn). Off by default.',
+  'admin.passkey.login': 'Enable passkey login',
+  'admin.passkey.loginHint':
+    'Show a "Sign in with a passkey" option and let users enrol passkeys in their settings.',
+  'admin.passkey.notConfigured':
+    'No WebAuthn domain resolves for this deployment yet. Set APP_URL or the Relying Party ID below — passkeys stay hidden until then.',
+  'admin.passkey.rpId': 'Relying Party ID (domain)',
+  'admin.passkey.rpIdHint':
+    'The bare domain passkeys are bound to, e.g. trek.example.org. Leave empty to derive it from APP_URL. Changing it later invalidates existing passkeys.',
+  'admin.passkey.origins': 'Allowed origins',
+  'admin.passkey.originsHint':
+    'Comma-separated full origins, e.g. https://trek.example.org. Leave empty to use APP_URL.',
+  'admin.passkey.reset': 'Reset passkeys',
+  'admin.passkey.resetHint':
+    "Remove all of this user's passkeys (e.g. on a lost device). They can still sign in with their password.",
+  'admin.passkey.resetConfirm': 'Remove all passkeys for {name}?',
+  'admin.passkey.resetDone': 'Removed {count} passkey(s)',
 };
 export default admin;

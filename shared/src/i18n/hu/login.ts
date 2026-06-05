@@ -98,5 +98,8 @@ const login: TranslationStrings = {
     'A link hiányzik vagy sérült. A folytatáshoz kérj egy újat.',
   'login.resetPasswordFailed':
     'A visszaállítás nem sikerült. A link lehet, hogy lejárt.',
+  'login.passkey.signIn': 'Bejelentkezés passkey-jel',
+  'login.passkey.failed':
+    'A passkey-bejelentkezés sikertelen. Kérjük, próbáld újra.',
 };
 export default login;

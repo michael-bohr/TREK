@@ -99,5 +99,8 @@ const login: TranslationStrings = {
     'Αυτός ο σύνδεσμος λείπει ή έχει χαλάσει. Ζητήστε έναν νέο για να συνεχίσετε.',
   'login.resetPasswordFailed':
     'Η επαναφορά απέτυχε. Ο σύνδεσμος μπορεί να έχει λήξει.',
+  'login.passkey.signIn': 'Σύνδεση με passkey',
+  'login.passkey.failed':
+    'Η σύνδεση με passkey απέτυχε. Παρακαλώ δοκιμάστε ξανά.',
 };
 export default login;

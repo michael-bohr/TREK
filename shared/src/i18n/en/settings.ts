@@ -290,6 +290,28 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Not available in demo mode',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkeys',
+  'settings.passkey.description':
+    'Sign in faster and phishing-resistant with a passkey — your fingerprint, face, PIN, or a hardware key. Your password stays as a backup.',
+  'settings.passkey.notConfigured':
+    'Passkeys are enabled but not fully configured on this server yet. Ask your administrator to set the WebAuthn domain.',
+  'settings.passkey.add': 'Add a passkey',
+  'settings.passkey.addTitle': 'Add a passkey',
+  'settings.passkey.passwordPrompt': 'Confirm your current password, then follow your device prompt.',
+  'settings.passkey.passwordRequired': 'Your current password is required.',
+  'settings.passkey.namePlaceholder': 'Name (optional, e.g. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey added',
+  'settings.passkey.added': 'Added',
+  'settings.passkey.addError': 'Could not add passkey',
+  'settings.passkey.cancelled': 'Passkey setup cancelled',
+  'settings.passkey.deleted': 'Passkey removed',
+  'settings.passkey.deleteConfirm': 'Remove this passkey? Confirm with your password.',
+  'settings.passkey.rename': 'Rename',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Synced',
+  'settings.passkey.deviceBound': 'This device',
+  'settings.passkey.lastUsed': 'Last used',
+  'settings.passkey.neverUsed': 'Never used',
 };
 
 export default settings;

@@ -93,5 +93,7 @@ const login: TranslationStrings = {
   'login.resetPasswordInvalidLinkBody':
     'Tautan hilang atau rusak. Minta tautan baru untuk melanjutkan.',
   'login.resetPasswordFailed': 'Reset gagal. Tautan mungkin sudah kedaluwarsa.',
+  'login.passkey.signIn': 'Masuk dengan passkey',
+  'login.passkey.failed': 'Masuk dengan passkey gagal. Silakan coba lagi.',
 };
 export default login;

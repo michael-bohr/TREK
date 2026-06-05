@@ -94,5 +94,7 @@ const login: TranslationStrings = {
   'login.oidcLoggedOut':
     'Ви вийшли з системи. Увійдіть знову через вашого SSO-провайдера.',
   'login.demoHint': 'Спробуйте демо — реєстрація не потрібна',
+  'login.passkey.signIn': 'Увійти за допомогою passkey',
+  'login.passkey.failed': 'Не вдалося увійти за допомогою passkey. Спробуйте ще раз.',
 };
 export default login;

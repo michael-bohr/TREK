@@ -290,6 +290,30 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate', // en-fallback
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'مفاتيح المرور',
+  'settings.passkey.description':
+    'سجّل الدخول بشكل أسرع وأكثر مقاومة للتصيّد باستخدام مفتاح مرور — ببصمة إصبعك أو وجهك أو رمز PIN أو مفتاح أمان مادي. تبقى كلمة المرور كنسخة احتياطية.',
+  'settings.passkey.notConfigured':
+    'مفاتيح المرور مفعّلة لكنها لم تُهيّأ بالكامل على هذا الخادم بعد. اطلب من المسؤول تعيين نطاق WebAuthn.',
+  'settings.passkey.add': 'إضافة مفتاح مرور',
+  'settings.passkey.addTitle': 'إضافة مفتاح مرور',
+  'settings.passkey.passwordPrompt':
+    'أكّد كلمة المرور الحالية، ثم اتبع التعليمات على جهازك.',
+  'settings.passkey.passwordRequired': 'كلمة المرور الحالية مطلوبة.',
+  'settings.passkey.namePlaceholder': 'الاسم (اختياري، مثل "iPhone")',
+  'settings.passkey.addedToast': 'تمت إضافة مفتاح المرور',
+  'settings.passkey.added': 'تمت الإضافة',
+  'settings.passkey.addError': 'تعذّرت إضافة مفتاح المرور',
+  'settings.passkey.cancelled': 'تم إلغاء إعداد مفتاح المرور',
+  'settings.passkey.deleted': 'تمت إزالة مفتاح المرور',
+  'settings.passkey.deleteConfirm':
+    'إزالة مفتاح المرور هذا؟ أكّد بكلمة المرور الخاصة بك.',
+  'settings.passkey.rename': 'إعادة التسمية',
+  'settings.passkey.defaultName': 'مفتاح المرور',
+  'settings.passkey.synced': 'متزامن',
+  'settings.passkey.deviceBound': 'هذا الجهاز',
+  'settings.passkey.lastUsed': 'آخر استخدام',
+  'settings.passkey.neverUsed': 'لم يُستخدم قط',
 };
 
 export default settings;

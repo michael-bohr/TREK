@@ -96,5 +96,8 @@ const login: TranslationStrings = {
     'Bu bağlantı eksik veya bozuk. Devam etmek için yeni bir tane isteyin.',
   'login.resetPasswordFailed':
     'Sıfırlama başarısız oldu. Bağlantının süresi dolmuş olabilir.',
+  'login.passkey.signIn': 'Passkey ile oturum açın',
+  'login.passkey.failed':
+    'Passkey ile oturum açma başarısız oldu. Lütfen tekrar deneyin.',
 };
 export default login;

@@ -298,6 +298,30 @@ const settings: TranslationStrings = {
   'settings.mustChangePassword': 'Musisz zmienić hasło przed kontynuowaniem.',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Klucze dostępu',
+  'settings.passkey.description':
+    'Loguj się szybciej i z odpornością na phishing za pomocą klucza dostępu — odcisku palca, twarzy, kodu PIN lub klucza sprzętowego. Twoje hasło pozostaje jako zapasowa opcja.',
+  'settings.passkey.notConfigured':
+    'Klucze dostępu są włączone, ale nie zostały jeszcze w pełni skonfigurowane na tym serwerze. Poproś administratora o ustawienie domeny WebAuthn.',
+  'settings.passkey.add': 'Dodaj klucz dostępu',
+  'settings.passkey.addTitle': 'Dodaj klucz dostępu',
+  'settings.passkey.passwordPrompt':
+    'Potwierdź swoje aktualne hasło, a następnie postępuj zgodnie z komunikatem na urządzeniu.',
+  'settings.passkey.passwordRequired': 'Twoje aktualne hasło jest wymagane.',
+  'settings.passkey.namePlaceholder': 'Nazwa (opcjonalnie, np. "iPhone")',
+  'settings.passkey.addedToast': 'Klucz dostępu został dodany',
+  'settings.passkey.added': 'Dodano',
+  'settings.passkey.addError': 'Nie udało się dodać klucza dostępu',
+  'settings.passkey.cancelled': 'Konfiguracja klucza dostępu anulowana',
+  'settings.passkey.deleted': 'Klucz dostępu został usunięty',
+  'settings.passkey.deleteConfirm':
+    'Usunąć ten klucz dostępu? Potwierdź swoim hasłem.',
+  'settings.passkey.rename': 'Zmień nazwę',
+  'settings.passkey.defaultName': 'Klucz dostępu',
+  'settings.passkey.synced': 'Zsynchronizowany',
+  'settings.passkey.deviceBound': 'To urządzenie',
+  'settings.passkey.lastUsed': 'Ostatnio użyty',
+  'settings.passkey.neverUsed': 'Nigdy nieużywany',
 };
 
 export default settings;

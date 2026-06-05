@@ -94,5 +94,8 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Reset nie powiódł się. Link mógł wygasnąć.',
   'login.setNewPassword': 'Ustaw nowe hasło',
   'login.setNewPasswordHint': 'Musisz zmienić hasło.',
+  'login.passkey.signIn': 'Zaloguj się kluczem dostępu',
+  'login.passkey.failed':
+    'Logowanie kluczem dostępu nie powiodło się. Spróbuj ponownie.',
 };
 export default login;

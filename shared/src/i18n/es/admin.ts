@@ -369,5 +369,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Travesía',
   'admin.addons.catalog.journey.description':
     'Seguimiento de viajes y diario de viajero con registros de ubicación, fotos e historias diarias',
+  'admin.passkey.title': 'Inicio de sesión con passkey',
+  'admin.passkey.cardHint':
+    'Permite que los usuarios inicien sesión con passkeys (WebAuthn). Desactivado de forma predeterminada.',
+  'admin.passkey.login': 'Activar inicio de sesión con passkey',
+  'admin.passkey.loginHint':
+    'Muestra una opción "Iniciar sesión con una passkey" y permite a los usuarios registrar passkeys en sus ajustes.',
+  'admin.passkey.notConfigured':
+    'Aún no se resuelve ningún dominio de WebAuthn para esta instalación. Define APP_URL o el Relying Party ID a continuación: las passkeys permanecerán ocultas hasta entonces.',
+  'admin.passkey.rpId': 'Relying Party ID (dominio)',
+  'admin.passkey.rpIdHint':
+    'El dominio puro al que se vinculan las passkeys, p. ej. trek.example.org. Déjalo vacío para derivarlo de APP_URL. Cambiarlo más adelante invalida las passkeys existentes.',
+  'admin.passkey.origins': 'Orígenes permitidos',
+  'admin.passkey.originsHint':
+    'Orígenes completos separados por comas, p. ej. https://trek.example.org. Déjalo vacío para usar APP_URL.',
+  'admin.passkey.reset': 'Restablecer passkeys',
+  'admin.passkey.resetHint':
+    'Elimina todas las passkeys de este usuario (p. ej. tras perder un dispositivo). Aún podrá iniciar sesión con su contraseña.',
+  'admin.passkey.resetConfirm': '¿Eliminar todas las passkeys de {name}?',
+  'admin.passkey.resetDone': 'Se eliminaron {count} passkey(s)',
 };
 export default admin;

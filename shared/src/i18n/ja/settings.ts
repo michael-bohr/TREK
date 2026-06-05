@@ -276,6 +276,30 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'マシン',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'パスキー',
+  'settings.passkey.description':
+    '指紋、顔認証、PIN、またはハードウェアキーを使うパスキーで、より速く、フィッシングに強いサインインができます。パスワードはバックアップとして残ります。',
+  'settings.passkey.notConfigured':
+    'パスキーは有効ですが、このサーバーではまだ完全には設定されていません。管理者に WebAuthn ドメインの設定を依頼してください。',
+  'settings.passkey.add': 'パスキーを追加',
+  'settings.passkey.addTitle': 'パスキーを追加',
+  'settings.passkey.passwordPrompt':
+    '現在のパスワードを確認し、デバイスの指示に従ってください。',
+  'settings.passkey.passwordRequired': '現在のパスワードが必要です。',
+  'settings.passkey.namePlaceholder': '名前（任意、例："iPhone"）',
+  'settings.passkey.addedToast': 'パスキーを追加しました',
+  'settings.passkey.added': '追加済み',
+  'settings.passkey.addError': 'パスキーを追加できませんでした',
+  'settings.passkey.cancelled': 'パスキーの設定をキャンセルしました',
+  'settings.passkey.deleted': 'パスキーを削除しました',
+  'settings.passkey.deleteConfirm':
+    'このパスキーを削除しますか？パスワードで確認してください。',
+  'settings.passkey.rename': '名前を変更',
+  'settings.passkey.defaultName': 'パスキー',
+  'settings.passkey.synced': '同期済み',
+  'settings.passkey.deviceBound': 'このデバイス',
+  'settings.passkey.lastUsed': '最終使用',
+  'settings.passkey.neverUsed': '未使用',
 };
 
 export default settings;

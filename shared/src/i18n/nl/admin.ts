@@ -360,5 +360,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Reisverslag',
   'admin.addons.catalog.journey.description':
     "Reistracking & reisdagboek met check-ins, foto's en dagelijkse verhalen",
+  'admin.passkey.title': 'Inloggen met passkey',
+  'admin.passkey.cardHint':
+    'Laat gebruikers inloggen met passkeys (WebAuthn). Standaard uit.',
+  'admin.passkey.login': 'Inloggen met passkey inschakelen',
+  'admin.passkey.loginHint':
+    'Toon een optie "Inloggen met een passkey" en laat gebruikers passkeys registreren in hun instellingen.',
+  'admin.passkey.notConfigured':
+    'Voor deze installatie wordt nog geen WebAuthn-domein herleid. Stel APP_URL of de Relying Party ID hieronder in — tot dan blijven passkeys verborgen.',
+  'admin.passkey.rpId': 'Relying Party ID (domein)',
+  'admin.passkey.rpIdHint':
+    'Het kale domein waaraan passkeys zijn gebonden, bijv. trek.example.org. Laat leeg om het af te leiden uit APP_URL. Als je dit later wijzigt, worden bestaande passkeys ongeldig.',
+  'admin.passkey.origins': 'Toegestane origins',
+  'admin.passkey.originsHint':
+    'Volledige origins, gescheiden door komma\'s, bijv. https://trek.example.org. Laat leeg om APP_URL te gebruiken.',
+  'admin.passkey.reset': 'Passkeys resetten',
+  'admin.passkey.resetHint':
+    'Verwijder alle passkeys van deze gebruiker (bijv. bij een verloren apparaat). Ze kunnen nog steeds inloggen met hun wachtwoord.',
+  'admin.passkey.resetConfirm': 'Alle passkeys voor {name} verwijderen?',
+  'admin.passkey.resetDone': '{count} passkey(s) verwijderd',
 };
 export default admin;

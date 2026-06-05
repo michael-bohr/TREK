@@ -92,5 +92,7 @@ const login: TranslationStrings = {
     'Il link è mancante o danneggiato. Richiedine uno nuovo per continuare.',
   'login.resetPasswordFailed':
     'Reset non riuscito. Il link potrebbe essere scaduto.',
+  'login.passkey.signIn': 'Accedi con una passkey',
+  'login.passkey.failed': 'Accesso con passkey non riuscito. Riprova.',
 };
 export default login;

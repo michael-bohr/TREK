@@ -293,6 +293,30 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': '머신',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': '패스키',
+  'settings.passkey.description':
+    '지문, 얼굴, PIN 또는 하드웨어 키 같은 패스키로 더 빠르고 피싱에 강하게 로그인하세요. 비밀번호는 백업으로 그대로 유지됩니다.',
+  'settings.passkey.notConfigured':
+    '패스키가 활성화되어 있지만 이 서버에 아직 완전히 설정되지 않았습니다. 관리자에게 WebAuthn 도메인 설정을 요청하세요.',
+  'settings.passkey.add': '패스키 추가',
+  'settings.passkey.addTitle': '패스키 추가',
+  'settings.passkey.passwordPrompt':
+    '현재 비밀번호를 확인한 뒤 기기 안내에 따라 진행하세요.',
+  'settings.passkey.passwordRequired': '현재 비밀번호가 필요합니다.',
+  'settings.passkey.namePlaceholder': '이름 (선택, 예: "iPhone")',
+  'settings.passkey.addedToast': '패스키가 추가되었습니다',
+  'settings.passkey.added': '추가됨',
+  'settings.passkey.addError': '패스키를 추가할 수 없습니다',
+  'settings.passkey.cancelled': '패스키 설정이 취소되었습니다',
+  'settings.passkey.deleted': '패스키가 삭제되었습니다',
+  'settings.passkey.deleteConfirm':
+    '이 패스키를 삭제할까요? 비밀번호로 확인하세요.',
+  'settings.passkey.rename': '이름 변경',
+  'settings.passkey.defaultName': '패스키',
+  'settings.passkey.synced': '동기화됨',
+  'settings.passkey.deviceBound': '이 기기',
+  'settings.passkey.lastUsed': '마지막 사용',
+  'settings.passkey.neverUsed': '사용한 적 없음',
 };
 
 export default settings;

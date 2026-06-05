@@ -362,5 +362,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Útinaplók',
   'admin.addons.catalog.journey.description':
     'Utazáskövetés és útinapló bejelentkezésekkel, fotókkal és napi történetekkel',
+  'admin.passkey.title': 'Passkey-bejelentkezés',
+  'admin.passkey.cardHint':
+    'Engedélyezd a felhasználóknak a bejelentkezést passkey-vel (WebAuthn). Alapból kikapcsolva.',
+  'admin.passkey.login': 'Passkey-bejelentkezés engedélyezése',
+  'admin.passkey.loginHint':
+    'Jeleníts meg egy „Bejelentkezés passkey-jel" lehetőséget, és engedd, hogy a felhasználók passkey-ket regisztráljanak a beállításaikban.',
+  'admin.passkey.notConfigured':
+    'Ehhez a telepítéshez még nem oldódik fel WebAuthn-domain. Állítsd be az APP_URL-t vagy a lenti Relying Party ID-t — addig a passkey-k rejtve maradnak.',
+  'admin.passkey.rpId': 'Relying Party ID (domain)',
+  'admin.passkey.rpIdHint':
+    'A csupasz domain, amelyhez a passkey-k kötődnek, pl. trek.example.org. Hagyd üresen, hogy az APP_URL-ből legyen levezetve. Későbbi módosítása érvényteleníti a meglévő passkey-ket.',
+  'admin.passkey.origins': 'Engedélyezett origók',
+  'admin.passkey.originsHint':
+    'Vesszővel elválasztott teljes origók, pl. https://trek.example.org. Hagyd üresen az APP_URL használatához.',
+  'admin.passkey.reset': 'Passkey-k visszaállítása',
+  'admin.passkey.resetHint':
+    'Eltávolítja a felhasználó összes passkey-jét (pl. elveszett eszköz esetén). A jelszavukkal továbbra is be tudnak jelentkezni.',
+  'admin.passkey.resetConfirm': 'Eltávolítod {name} összes passkey-jét?',
+  'admin.passkey.resetDone': '{count} passkey eltávolítva',
 };
 export default admin;

@@ -362,5 +362,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Dziennik podróży',
   'admin.addons.catalog.journey.description':
     'Śledzenie podróży i dziennik z zameldowaniami, zdjęciami i codziennymi historiami',
+  'admin.passkey.title': 'Logowanie kluczem dostępu',
+  'admin.passkey.cardHint':
+    'Pozwól użytkownikom logować się kluczami dostępu (WebAuthn). Domyślnie wyłączone.',
+  'admin.passkey.login': 'Włącz logowanie kluczem dostępu',
+  'admin.passkey.loginHint':
+    'Pokaż opcję „Zaloguj się kluczem dostępu” i pozwól użytkownikom rejestrować klucze dostępu w swoich ustawieniach.',
+  'admin.passkey.notConfigured':
+    'Dla tego wdrożenia nie ustalono jeszcze żadnej domeny WebAuthn. Ustaw APP_URL lub Relying Party ID poniżej — do tego czasu klucze dostępu pozostaną ukryte.',
+  'admin.passkey.rpId': 'Relying Party ID (domena)',
+  'admin.passkey.rpIdHint':
+    'Sama domena, do której przypisane są klucze dostępu, np. trek.example.org. Pozostaw puste, aby wyprowadzić ją z APP_URL. Późniejsza zmiana unieważnia istniejące klucze dostępu.',
+  'admin.passkey.origins': 'Dozwolone origins',
+  'admin.passkey.originsHint':
+    'Pełne origins oddzielone przecinkami, np. https://trek.example.org. Pozostaw puste, aby użyć APP_URL.',
+  'admin.passkey.reset': 'Zresetuj klucze dostępu',
+  'admin.passkey.resetHint':
+    'Usuń wszystkie klucze dostępu tego użytkownika (np. po utracie urządzenia). Nadal będzie mógł logować się hasłem.',
+  'admin.passkey.resetConfirm': 'Usunąć wszystkie klucze dostępu dla {name}?',
+  'admin.passkey.resetDone': 'Usunięto {count} kluczy dostępu',
 };
 export default admin;

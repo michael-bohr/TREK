@@ -297,6 +297,30 @@ const settings: TranslationStrings = {
     'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkey',
+  'settings.passkey.description':
+    'Masuk lebih cepat dan tahan terhadap phishing dengan passkey — sidik jari, wajah, PIN, atau kunci keamanan fisik kamu. Kata sandimu tetap tersedia sebagai cadangan.',
+  'settings.passkey.notConfigured':
+    'Passkey diaktifkan tetapi belum sepenuhnya dikonfigurasi di server ini. Minta administratormu untuk mengatur domain WebAuthn.',
+  'settings.passkey.add': 'Tambah passkey',
+  'settings.passkey.addTitle': 'Tambah passkey',
+  'settings.passkey.passwordPrompt':
+    'Konfirmasi kata sandimu saat ini, lalu ikuti petunjuk di perangkatmu.',
+  'settings.passkey.passwordRequired': 'Kata sandimu saat ini wajib diisi.',
+  'settings.passkey.namePlaceholder': 'Nama (opsional, mis. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey ditambahkan',
+  'settings.passkey.added': 'Ditambahkan',
+  'settings.passkey.addError': 'Gagal menambahkan passkey',
+  'settings.passkey.cancelled': 'Penyiapan passkey dibatalkan',
+  'settings.passkey.deleted': 'Passkey dihapus',
+  'settings.passkey.deleteConfirm':
+    'Hapus passkey ini? Konfirmasi dengan kata sandimu.',
+  'settings.passkey.rename': 'Ganti nama',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Tersinkron',
+  'settings.passkey.deviceBound': 'Perangkat ini',
+  'settings.passkey.lastUsed': 'Terakhir digunakan',
+  'settings.passkey.neverUsed': 'Belum pernah digunakan',
 };
 
 export default settings;

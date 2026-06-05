@@ -297,6 +297,29 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkeys',
+  'settings.passkey.description':
+    'Входите быстрее и с защитой от фишинга с помощью passkey — отпечатка пальца, лица, PIN-кода или аппаратного ключа. Ваш пароль остаётся как резервный способ.',
+  'settings.passkey.notConfigured':
+    'Passkeys включены, но ещё не полностью настроены на этом сервере. Попросите администратора задать домен WebAuthn.',
+  'settings.passkey.add': 'Добавить passkey',
+  'settings.passkey.addTitle': 'Добавить passkey',
+  'settings.passkey.passwordPrompt':
+    'Подтвердите текущий пароль, затем следуйте подсказке на устройстве.',
+  'settings.passkey.passwordRequired': 'Требуется ваш текущий пароль.',
+  'settings.passkey.namePlaceholder': 'Название (необязательно, напр. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey добавлен',
+  'settings.passkey.added': 'Добавлен',
+  'settings.passkey.addError': 'Не удалось добавить passkey',
+  'settings.passkey.cancelled': 'Настройка passkey отменена',
+  'settings.passkey.deleted': 'Passkey удалён',
+  'settings.passkey.deleteConfirm': 'Удалить этот passkey? Подтвердите паролем.',
+  'settings.passkey.rename': 'Переименовать',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Синхронизирован',
+  'settings.passkey.deviceBound': 'Это устройство',
+  'settings.passkey.lastUsed': 'Последнее использование',
+  'settings.passkey.neverUsed': 'Не использовался',
 };
 
 export default settings;

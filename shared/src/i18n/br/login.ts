@@ -91,5 +91,8 @@ const login: TranslationStrings = {
     'Este link está ausente ou corrompido. Solicite um novo para continuar.',
   'login.resetPasswordFailed':
     'Falha na redefinição. O link pode ter expirado.',
+  'login.passkey.signIn': 'Entrar com uma passkey',
+  'login.passkey.failed':
+    'Falha ao entrar com passkey. Tente novamente.',
 };
 export default login;

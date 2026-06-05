@@ -370,5 +370,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     'Відстеження поїздок і щоденник подорожей з позначками, фото та щоденними історіями',
+  'admin.passkey.title': 'Вхід за допомогою passkey',
+  'admin.passkey.cardHint':
+    'Дозволити користувачам входити за допомогою passkey (WebAuthn). За замовчуванням вимкнено.',
+  'admin.passkey.login': 'Увімкнути вхід за допомогою passkey',
+  'admin.passkey.loginHint':
+    'Показувати опцію «Увійти за допомогою passkey» та дозволити користувачам реєструвати passkeys у своїх налаштуваннях.',
+  'admin.passkey.notConfigured':
+    'Для цього розгортання поки не визначено жодного домену WebAuthn. Вкажіть APP_URL або Relying Party ID нижче — до того часу passkeys залишатимуться прихованими.',
+  'admin.passkey.rpId': 'Relying Party ID (домен)',
+  'admin.passkey.rpIdHint':
+    'Чистий домен, до якого прив’язані passkeys, напр. trek.example.org. Залиште порожнім, щоб визначити його з APP_URL. Подальша зміна робить наявні passkeys недійсними.',
+  'admin.passkey.origins': 'Дозволені джерела (origins)',
+  'admin.passkey.originsHint':
+    'Повні джерела через кому, напр. https://trek.example.org. Залиште порожнім, щоб використати APP_URL.',
+  'admin.passkey.reset': 'Скинути passkeys',
+  'admin.passkey.resetHint':
+    'Видалити всі passkeys цього користувача (напр. у разі втрати пристрою). Він зможе входити за допомогою свого пароля.',
+  'admin.passkey.resetConfirm': 'Видалити всі passkeys для {name}?',
+  'admin.passkey.resetDone': 'Видалено passkeys: {count}',
 };
 export default admin;

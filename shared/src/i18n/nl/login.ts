@@ -94,5 +94,7 @@ const login: TranslationStrings = {
   'login.oidcLoggedOut':
     'Je bent uitgelogd. Log opnieuw in via je SSO-provider.',
   'login.demoHint': 'Probeer de demo — geen registratie nodig',
+  'login.passkey.signIn': 'Inloggen met een passkey',
+  'login.passkey.failed': 'Inloggen met passkey mislukt. Probeer het opnieuw.',
 };
 export default login;

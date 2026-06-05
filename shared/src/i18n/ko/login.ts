@@ -89,5 +89,7 @@ const login: TranslationStrings = {
   'login.resetPasswordInvalidLinkBody':
     '이 링크가 없거나 손상되었습니다. 새 링크를 요청하세요.',
   'login.resetPasswordFailed': '재설정 실패. 링크가 만료되었을 수 있습니다.',
+  'login.passkey.signIn': '패스키로 로그인',
+  'login.passkey.failed': '패스키 로그인에 실패했습니다. 다시 시도하세요.',
 };
 export default login;

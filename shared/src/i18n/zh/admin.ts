@@ -326,5 +326,23 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': '旅程',
   'admin.addons.catalog.journey.description':
     '旅行追踪与旅行日志，包含签到、照片和每日故事',
+  'admin.passkey.title': '通行密钥登录',
+  'admin.passkey.cardHint': '允许用户使用通行密钥（WebAuthn）登录。默认关闭。',
+  'admin.passkey.login': '启用通行密钥登录',
+  'admin.passkey.loginHint':
+    '显示"使用通行密钥登录"选项，并允许用户在其设置中注册通行密钥。',
+  'admin.passkey.notConfigured':
+    '此部署尚未解析出有效的 WebAuthn 域名。请设置 APP_URL 或下方的 Relying Party ID——在此之前通行密钥将保持隐藏。',
+  'admin.passkey.rpId': 'Relying Party ID（域名）',
+  'admin.passkey.rpIdHint':
+    '通行密钥所绑定的纯域名，如 trek.example.org。留空则从 APP_URL 推导。之后更改将使现有通行密钥失效。',
+  'admin.passkey.origins': '允许的来源',
+  'admin.passkey.originsHint':
+    '以逗号分隔的完整来源，如 https://trek.example.org。留空则使用 APP_URL。',
+  'admin.passkey.reset': '重置通行密钥',
+  'admin.passkey.resetHint':
+    '移除该用户的所有通行密钥（如设备丢失时）。他们仍可使用密码登录。',
+  'admin.passkey.resetConfirm': '移除 {name} 的所有通行密钥？',
+  'admin.passkey.resetDone': '已移除 {count} 个通行密钥',
 };
 export default admin;

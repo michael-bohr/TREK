@@ -83,5 +83,7 @@ const login: TranslationStrings = {
   'login.oidcOnly': '密码登录已关闭。请通过 SSO 提供商登录。',
   'login.oidcLoggedOut': '您已退出登录。请重新通过 SSO 提供商登录。',
   'login.demoHint': '试用演示——无需注册',
+  'login.passkey.signIn': '使用通行密钥登录',
+  'login.passkey.failed': '通行密钥登录失败，请重试。',
 };
 export default login;

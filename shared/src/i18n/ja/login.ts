@@ -91,5 +91,8 @@ const login: TranslationStrings = {
     'リンクが無効または破損しています。新しいリンクをリクエストしてください。',
   'login.resetPasswordFailed':
     'リセットに失敗しました。リンクの有効期限が切れている可能性があります。',
+  'login.passkey.signIn': 'パスキーでサインイン',
+  'login.passkey.failed':
+    'パスキーでのサインインに失敗しました。もう一度お試しください。',
 };
 export default login;

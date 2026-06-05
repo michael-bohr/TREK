@@ -297,6 +297,30 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Přístupové klíče',
+  'settings.passkey.description':
+    'Přihlašujte se rychleji a s ochranou proti phishingu pomocí přístupového klíče — otiskem prstu, obličejem, PINem nebo hardwarovým klíčem. Vaše heslo zůstává jako záloha.',
+  'settings.passkey.notConfigured':
+    'Přístupové klíče jsou povoleny, ale na tomto serveru zatím nejsou plně nastaveny. Požádejte správce o nastavení domény WebAuthn.',
+  'settings.passkey.add': 'Přidat přístupový klíč',
+  'settings.passkey.addTitle': 'Přidat přístupový klíč',
+  'settings.passkey.passwordPrompt':
+    'Potvrďte své současné heslo a poté postupujte podle pokynů svého zařízení.',
+  'settings.passkey.passwordRequired': 'Vaše současné heslo je vyžadováno.',
+  'settings.passkey.namePlaceholder': 'Název (volitelné, např. „iPhone“)',
+  'settings.passkey.addedToast': 'Přístupový klíč přidán',
+  'settings.passkey.added': 'Přidáno',
+  'settings.passkey.addError': 'Přístupový klíč se nepodařilo přidat',
+  'settings.passkey.cancelled': 'Nastavení přístupového klíče zrušeno',
+  'settings.passkey.deleted': 'Přístupový klíč odebrán',
+  'settings.passkey.deleteConfirm':
+    'Odebrat tento přístupový klíč? Potvrďte svým heslem.',
+  'settings.passkey.rename': 'Přejmenovat',
+  'settings.passkey.defaultName': 'Přístupový klíč',
+  'settings.passkey.synced': 'Synchronizováno',
+  'settings.passkey.deviceBound': 'Toto zařízení',
+  'settings.passkey.lastUsed': 'Naposledy použito',
+  'settings.passkey.neverUsed': 'Nikdy nepoužito',
 };
 
 export default settings;

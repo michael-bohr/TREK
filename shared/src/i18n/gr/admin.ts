@@ -370,5 +370,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Ταξίδι',
   'admin.addons.catalog.journey.description':
     'Παρακολούθηση ταξιδιών & ημερολόγιο ταξιδιών με αφίξεις, φωτογραφίες και καθημερινές ιστορίες',
+  'admin.passkey.title': 'Σύνδεση με passkey',
+  'admin.passkey.cardHint':
+    'Επιτρέψτε στους χρήστες να συνδέονται με passkeys (WebAuthn). Απενεργοποιημένο από προεπιλογή.',
+  'admin.passkey.login': 'Ενεργοποίηση σύνδεσης με passkey',
+  'admin.passkey.loginHint':
+    'Εμφανίστε μια επιλογή "Σύνδεση με passkey" και επιτρέψτε στους χρήστες να καταχωρούν passkeys στις ρυθμίσεις τους.',
+  'admin.passkey.notConfigured':
+    'Δεν αναλύεται ακόμη κανένας τομέας WebAuthn για αυτή την εγκατάσταση. Ορίστε το APP_URL ή το Relying Party ID παρακάτω — τα passkeys παραμένουν κρυφά μέχρι τότε.',
+  'admin.passkey.rpId': 'Relying Party ID (τομέας)',
+  'admin.passkey.rpIdHint':
+    'Ο σκέτος τομέας στον οποίο δεσμεύονται τα passkeys, π.χ. trek.example.org. Αφήστε το κενό για να παραχθεί από το APP_URL. Η μεταγενέστερη αλλαγή του ακυρώνει τα υπάρχοντα passkeys.',
+  'admin.passkey.origins': 'Επιτρεπόμενες προελεύσεις',
+  'admin.passkey.originsHint':
+    'Πλήρεις προελεύσεις χωρισμένες με κόμμα, π.χ. https://trek.example.org. Αφήστε το κενό για χρήση του APP_URL.',
+  'admin.passkey.reset': 'Επαναφορά passkeys',
+  'admin.passkey.resetHint':
+    'Αφαιρέστε όλα τα passkeys αυτού του χρήστη (π.χ. σε περίπτωση χαμένης συσκευής). Μπορούν ακόμη να συνδεθούν με τον κωδικό τους.',
+  'admin.passkey.resetConfirm': 'Αφαίρεση όλων των passkeys για τον/την {name};',
+  'admin.passkey.resetDone': 'Αφαιρέθηκαν {count} passkey(s)',
 };
 export default admin;

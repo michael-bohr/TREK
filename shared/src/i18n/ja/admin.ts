@@ -336,5 +336,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': '日記',
   'admin.addons.catalog.journey.description':
     'チェックイン、写真、日ごとのストーリーで旅を記録',
+  'admin.passkey.title': 'パスキーログイン',
+  'admin.passkey.cardHint':
+    'ユーザーがパスキー（WebAuthn）でサインインできるようにします。既定では無効です。',
+  'admin.passkey.login': 'パスキーログインを有効化',
+  'admin.passkey.loginHint':
+    '「パスキーでサインイン」オプションを表示し、ユーザーが設定でパスキーを登録できるようにします。',
+  'admin.passkey.notConfigured':
+    'このデプロイにはまだ有効な WebAuthn ドメインがありません。下の APP_URL または Relying Party ID を設定してください。それまでパスキーは表示されません。',
+  'admin.passkey.rpId': 'Relying Party ID（ドメイン）',
+  'admin.passkey.rpIdHint':
+    'パスキーが紐づくドメイン名のみ（例：trek.example.org）。空欄の場合は APP_URL から導出されます。後で変更すると既存のパスキーは無効になります。',
+  'admin.passkey.origins': '許可するオリジン',
+  'admin.passkey.originsHint':
+    'カンマ区切りの完全なオリジン（例：https://trek.example.org）。空欄の場合は APP_URL を使用します。',
+  'admin.passkey.reset': 'パスキーをリセット',
+  'admin.passkey.resetHint':
+    'このユーザーのパスキーをすべて削除します（例：デバイスを紛失した場合）。パスワードでのサインインは引き続き可能です。',
+  'admin.passkey.resetConfirm': '{name} のパスキーをすべて削除しますか？',
+  'admin.passkey.resetDone': '{count} 件のパスキーを削除しました',
 };
 export default admin;

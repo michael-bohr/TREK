@@ -358,5 +358,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Cestovní deník',
   'admin.addons.catalog.journey.description':
     'Sledování cest a cestovní deník s odbaveními, fotkami a denními příběhy',
+  'admin.passkey.title': 'Přihlášení přístupovým klíčem',
+  'admin.passkey.cardHint':
+    'Umožněte uživatelům přihlašovat se pomocí přístupových klíčů (WebAuthn). Ve výchozím nastavení vypnuto.',
+  'admin.passkey.login': 'Povolit přihlášení přístupovým klíčem',
+  'admin.passkey.loginHint':
+    'Zobrazí možnost „Přihlásit se pomocí přístupového klíče“ a umožní uživatelům zaregistrovat přístupové klíče v nastavení.',
+  'admin.passkey.notConfigured':
+    'Pro toto nasazení zatím nelze určit žádnou doménu WebAuthn. Nastavte níže APP_URL nebo Relying Party ID — do té doby zůstanou přístupové klíče skryté.',
+  'admin.passkey.rpId': 'Relying Party ID (doména)',
+  'admin.passkey.rpIdHint':
+    'Holá doména, ke které jsou přístupové klíče vázány, např. trek.example.org. Ponechte prázdné, aby se odvodila z APP_URL. Pozdější změna zneplatní stávající přístupové klíče.',
+  'admin.passkey.origins': 'Povolené origins',
+  'admin.passkey.originsHint':
+    'Úplné origins oddělené čárkou, např. https://trek.example.org. Ponechte prázdné pro použití APP_URL.',
+  'admin.passkey.reset': 'Resetovat přístupové klíče',
+  'admin.passkey.resetHint':
+    'Odebere všechny přístupové klíče tohoto uživatele (např. při ztrátě zařízení). Stále se může přihlásit svým heslem.',
+  'admin.passkey.resetConfirm': 'Odebrat všechny přístupové klíče uživatele {name}?',
+  'admin.passkey.resetDone': 'Odebráno {count} přístupových klíčů',
 };
 export default admin;

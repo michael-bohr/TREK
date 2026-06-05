@@ -299,6 +299,30 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkey-k',
+  'settings.passkey.description':
+    'Jelentkezz be gyorsabban és adathalászat-állóan egy passkey-jel — ujjlenyomattal, arccal, PIN-kóddal vagy hardveres kulccsal. A jelszavad tartalékként megmarad.',
+  'settings.passkey.notConfigured':
+    'A passkey-k engedélyezve vannak, de ezen a szerveren még nincsenek teljesen beállítva. Kérd meg a rendszergazdát, hogy állítsa be a WebAuthn-domaint.',
+  'settings.passkey.add': 'Passkey hozzáadása',
+  'settings.passkey.addTitle': 'Passkey hozzáadása',
+  'settings.passkey.passwordPrompt':
+    'Erősítsd meg a jelenlegi jelszavad, majd kövesd az eszközöd útmutatását.',
+  'settings.passkey.passwordRequired': 'A jelenlegi jelszó megadása kötelező.',
+  'settings.passkey.namePlaceholder': 'Név (opcionális, pl. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey hozzáadva',
+  'settings.passkey.added': 'Hozzáadva',
+  'settings.passkey.addError': 'Nem sikerült hozzáadni a passkey-t',
+  'settings.passkey.cancelled': 'Passkey beállítása megszakítva',
+  'settings.passkey.deleted': 'Passkey eltávolítva',
+  'settings.passkey.deleteConfirm':
+    'Eltávolítod ezt a passkey-t? Erősítsd meg a jelszavaddal.',
+  'settings.passkey.rename': 'Átnevezés',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Szinkronizálva',
+  'settings.passkey.deviceBound': 'Ez az eszköz',
+  'settings.passkey.lastUsed': 'Utoljára használva',
+  'settings.passkey.neverUsed': 'Még nem használt',
 };
 
 export default settings;

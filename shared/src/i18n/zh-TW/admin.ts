@@ -327,5 +327,23 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': '旅程',
   'admin.addons.catalog.journey.description':
     '旅行追蹤與旅行日誌，包含打卡、照片和每日故事',
+  'admin.passkey.title': 'Passkey 登入',
+  'admin.passkey.cardHint': '讓使用者使用 Passkey（WebAuthn）登入。預設為關閉。',
+  'admin.passkey.login': '啟用 Passkey 登入',
+  'admin.passkey.loginHint':
+    '顯示「使用 Passkey 登入」選項，並讓使用者在設定中註冊 Passkey。',
+  'admin.passkey.notConfigured':
+    '此部署尚未解析出任何 WebAuthn 網域。請設定下方的 APP_URL 或 Relying Party ID——在此之前 Passkey 將保持隱藏。',
+  'admin.passkey.rpId': 'Relying Party ID（網域）',
+  'admin.passkey.rpIdHint':
+    'Passkey 綁定的純網域，例如 trek.example.org。留空則從 APP_URL 推導。日後變更將使現有 Passkey 失效。',
+  'admin.passkey.origins': '允許的來源',
+  'admin.passkey.originsHint':
+    '以逗號分隔的完整來源，例如 https://trek.example.org。留空則使用 APP_URL。',
+  'admin.passkey.reset': '重設 Passkey',
+  'admin.passkey.resetHint':
+    '移除此使用者的所有 Passkey（例如裝置遺失時）。他們仍可使用密碼登入。',
+  'admin.passkey.resetConfirm': '要移除 {name} 的所有 Passkey 嗎？',
+  'admin.passkey.resetDone': '已移除 {count} 個 Passkey',
 };
 export default admin;

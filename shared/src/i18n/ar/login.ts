@@ -88,5 +88,7 @@ const login: TranslationStrings = {
     'هذا الرابط مفقود أو تالف. اطلب رابطًا جديدًا للمتابعة.',
   'login.resetPasswordFailed': 'فشلت إعادة التعيين. ربما انتهت صلاحية الرابط.',
   'login.emailPlaceholder': 'your@email.com', // en-fallback
+  'login.passkey.signIn': 'تسجيل الدخول باستخدام مفتاح المرور',
+  'login.passkey.failed': 'فشل تسجيل الدخول بمفتاح المرور. يرجى المحاولة مرة أخرى.',
 };
 export default login;

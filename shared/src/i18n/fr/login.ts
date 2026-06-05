@@ -98,5 +98,8 @@ const login: TranslationStrings = {
   'login.oidcLoggedOut':
     'Vous avez été déconnecté. Reconnectez-vous via votre fournisseur SSO.',
   'login.demoHint': 'Essayez la démo — aucune inscription nécessaire',
+  'login.passkey.signIn': 'Se connecter avec une passkey',
+  'login.passkey.failed':
+    'Échec de la connexion par passkey. Veuillez réessayer.',
 };
 export default login;

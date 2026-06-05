@@ -284,6 +284,28 @@ const settings: TranslationStrings = {
     '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkey',
+  'settings.passkey.description':
+    '使用 Passkey 更快登入，並可抵禦網路釣魚——透過你的指紋、臉部、PIN 碼或硬體金鑰。你的密碼仍會保留作為備援。',
+  'settings.passkey.notConfigured':
+    'Passkey 已啟用，但此伺服器尚未完成設定。請聯絡管理員設定 WebAuthn 網域。',
+  'settings.passkey.add': '新增 Passkey',
+  'settings.passkey.addTitle': '新增 Passkey',
+  'settings.passkey.passwordPrompt': '請確認你目前的密碼，然後依照裝置提示操作。',
+  'settings.passkey.passwordRequired': '請輸入你目前的密碼。',
+  'settings.passkey.namePlaceholder': '名稱（選填，例如 "iPhone"）',
+  'settings.passkey.addedToast': 'Passkey 已新增',
+  'settings.passkey.added': '已新增',
+  'settings.passkey.addError': '無法新增 Passkey',
+  'settings.passkey.cancelled': 'Passkey 設定已取消',
+  'settings.passkey.deleted': 'Passkey 已移除',
+  'settings.passkey.deleteConfirm': '要移除此 Passkey 嗎？請以密碼確認。',
+  'settings.passkey.rename': '重新命名',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': '已同步',
+  'settings.passkey.deviceBound': '此裝置',
+  'settings.passkey.lastUsed': '上次使用',
+  'settings.passkey.neverUsed': '從未使用',
 };
 
 export default settings;

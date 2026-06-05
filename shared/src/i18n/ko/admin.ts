@@ -349,5 +349,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     '체크인, 사진, 일별 이야기가 있는 여행 기록 및 여행 일지',
+  'admin.passkey.title': '패스키 로그인',
+  'admin.passkey.cardHint':
+    '사용자가 패스키(WebAuthn)로 로그인할 수 있게 합니다. 기본값은 꺼짐입니다.',
+  'admin.passkey.login': '패스키 로그인 활성화',
+  'admin.passkey.loginHint':
+    '"패스키로 로그인" 옵션을 표시하고 사용자가 설정에서 패스키를 등록할 수 있게 합니다.',
+  'admin.passkey.notConfigured':
+    '이 배포에 아직 WebAuthn 도메인이 확인되지 않습니다. 아래에서 APP_URL 또는 Relying Party ID를 설정하세요 — 그 전까지 패스키는 숨겨진 상태로 유지됩니다.',
+  'admin.passkey.rpId': 'Relying Party ID (도메인)',
+  'admin.passkey.rpIdHint':
+    '패스키가 바인딩되는 순수 도메인입니다. 예: trek.example.org. 비워두면 APP_URL에서 자동으로 가져옵니다. 나중에 변경하면 기존 패스키가 무효화됩니다.',
+  'admin.passkey.origins': '허용된 오리진',
+  'admin.passkey.originsHint':
+    '쉼표로 구분된 전체 오리진입니다. 예: https://trek.example.org. 비워두면 APP_URL을 사용합니다.',
+  'admin.passkey.reset': '패스키 초기화',
+  'admin.passkey.resetHint':
+    '이 사용자의 모든 패스키를 삭제합니다 (예: 기기 분실 시). 사용자는 비밀번호로 계속 로그인할 수 있습니다.',
+  'admin.passkey.resetConfirm': '{name}의 모든 패스키를 삭제할까요?',
+  'admin.passkey.resetDone': '패스키 {count}개를 삭제했습니다',
 };
 export default admin;

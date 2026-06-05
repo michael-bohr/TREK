@@ -296,6 +296,30 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkey',
+  'settings.passkey.description':
+    'Accedi più velocemente e in modo resistente al phishing con una passkey — la tua impronta digitale, il volto, il PIN o una chiave hardware. La tua password resta come riserva.',
+  'settings.passkey.notConfigured':
+    'Le passkey sono abilitate ma non ancora completamente configurate su questo server. Chiedi al tuo amministratore di impostare il dominio WebAuthn.',
+  'settings.passkey.add': 'Aggiungi una passkey',
+  'settings.passkey.addTitle': 'Aggiungi una passkey',
+  'settings.passkey.passwordPrompt':
+    'Conferma la tua password attuale, poi segui le istruzioni del tuo dispositivo.',
+  'settings.passkey.passwordRequired': 'La tua password attuale è obbligatoria.',
+  'settings.passkey.namePlaceholder': 'Nome (facoltativo, es. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey aggiunta',
+  'settings.passkey.added': 'Aggiunta',
+  'settings.passkey.addError': 'Impossibile aggiungere la passkey',
+  'settings.passkey.cancelled': 'Configurazione della passkey annullata',
+  'settings.passkey.deleted': 'Passkey rimossa',
+  'settings.passkey.deleteConfirm':
+    'Rimuovere questa passkey? Conferma con la tua password.',
+  'settings.passkey.rename': 'Rinomina',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Sincronizzata',
+  'settings.passkey.deviceBound': 'Questo dispositivo',
+  'settings.passkey.lastUsed': 'Ultimo utilizzo',
+  'settings.passkey.neverUsed': 'Mai usata',
 };
 
 export default settings;

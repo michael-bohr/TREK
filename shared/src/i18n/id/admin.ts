@@ -357,5 +357,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey',
   'admin.addons.catalog.journey.description':
     'Pelacakan perjalanan & jurnal dengan check-in, foto, dan cerita harian',
+  'admin.passkey.title': 'Login dengan passkey',
+  'admin.passkey.cardHint':
+    'Izinkan pengguna masuk dengan passkey (WebAuthn). Nonaktif secara default.',
+  'admin.passkey.login': 'Aktifkan login dengan passkey',
+  'admin.passkey.loginHint':
+    'Tampilkan opsi "Masuk dengan passkey" dan izinkan pengguna mendaftarkan passkey di pengaturan mereka.',
+  'admin.passkey.notConfigured':
+    'Belum ada domain WebAuthn yang terdeteksi untuk deployment ini. Atur APP_URL atau Relying Party ID di bawah — passkey tetap tersembunyi sampai itu dilakukan.',
+  'admin.passkey.rpId': 'Relying Party ID (domain)',
+  'admin.passkey.rpIdHint':
+    'Domain murni tempat passkey diikat, mis. trek.example.org. Kosongkan untuk mengambilnya dari APP_URL. Mengubahnya nanti akan membatalkan passkey yang sudah ada.',
+  'admin.passkey.origins': 'Origin yang diizinkan',
+  'admin.passkey.originsHint':
+    'Origin lengkap dipisahkan koma, mis. https://trek.example.org. Kosongkan untuk menggunakan APP_URL.',
+  'admin.passkey.reset': 'Reset passkey',
+  'admin.passkey.resetHint':
+    'Hapus semua passkey pengguna ini (mis. saat perangkat hilang). Mereka tetap bisa masuk dengan kata sandi mereka.',
+  'admin.passkey.resetConfirm': 'Hapus semua passkey untuk {name}?',
+  'admin.passkey.resetDone': 'Menghapus {count} passkey',
 };
 export default admin;

@@ -363,5 +363,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Seyahat',
   'admin.addons.catalog.journey.description':
     'Check-in, fotoğraf ve günlük hikâyelerle seyahat takibi ve seyahat günlüğü',
+  'admin.passkey.title': 'Passkey ile oturum açma',
+  'admin.passkey.cardHint':
+    'Kullanıcıların passkey (WebAuthn) ile oturum açmasına izin verin. Varsayılan olarak kapalı.',
+  'admin.passkey.login': 'Passkey ile oturum açmayı etkinleştir',
+  'admin.passkey.loginHint':
+    'Bir "Passkey ile oturum açın" seçeneği gösterin ve kullanıcıların ayarlarında passkey kaydetmesine izin verin.',
+  'admin.passkey.notConfigured':
+    'Bu dağıtım için henüz çözümlenen bir WebAuthn alan adı yok. Aşağıdan APP_URL veya Relying Party ID değerini ayarlayın — o ana kadar passkey’ler gizli kalır.',
+  'admin.passkey.rpId': 'Relying Party ID (alan adı)',
+  'admin.passkey.rpIdHint':
+    'Passkey’lerin bağlı olduğu yalın alan adı, ör. trek.example.org. APP_URL’den türetmek için boş bırakın. Daha sonra değiştirmek mevcut passkey’leri geçersiz kılar.',
+  'admin.passkey.origins': 'İzin verilen kaynaklar',
+  'admin.passkey.originsHint':
+    'Virgülle ayrılmış tam kaynaklar, ör. https://trek.example.org. APP_URL kullanmak için boş bırakın.',
+  'admin.passkey.reset': 'Passkey’leri sıfırla',
+  'admin.passkey.resetHint':
+    'Bu kullanıcının tüm passkey’lerini kaldırın (ör. kaybolan bir cihazda). Yine de şifreleriyle oturum açabilirler.',
+  'admin.passkey.resetConfirm': '{name} için tüm passkey’ler kaldırılsın mı?',
+  'admin.passkey.resetDone': '{count} passkey kaldırıldı',
 };
 export default admin;

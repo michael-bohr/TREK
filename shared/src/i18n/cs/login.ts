@@ -91,5 +91,8 @@ const login: TranslationStrings = {
   'login.resetPasswordInvalidLinkBody':
     'Odkaz chybí nebo je poškozený. Pro pokračování si vyžádej nový.',
   'login.resetPasswordFailed': 'Obnovení se nezdařilo. Odkaz mohl vypršet.',
+  'login.passkey.signIn': 'Přihlásit se pomocí přístupového klíče',
+  'login.passkey.failed':
+    'Přihlášení přístupovým klíčem se nezdařilo. Zkuste to prosím znovu.',
 };
 export default login;

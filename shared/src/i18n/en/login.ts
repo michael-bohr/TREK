@@ -91,5 +91,7 @@ const login: TranslationStrings = {
   'login.resetPasswordInvalidLinkBody':
     'This link is missing or broken. Request a new one to continue.',
   'login.resetPasswordFailed': 'Reset failed. The link may have expired.',
+  'login.passkey.signIn': 'Sign in with a passkey',
+  'login.passkey.failed': 'Passkey sign-in failed. Please try again.',
 };
 export default login;

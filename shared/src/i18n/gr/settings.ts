@@ -303,6 +303,30 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Δεν είναι διαθέσιμο σε λειτουργία demo',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkeys',
+  'settings.passkey.description':
+    'Συνδεθείτε πιο γρήγορα και με προστασία από phishing χρησιμοποιώντας ένα passkey — το δαχτυλικό σας αποτύπωμα, το πρόσωπό σας, ένα PIN ή ένα κλειδί υλικού. Ο κωδικός σας παραμένει ως εφεδρεία.',
+  'settings.passkey.notConfigured':
+    'Τα passkeys είναι ενεργοποιημένα αλλά δεν έχουν διαμορφωθεί πλήρως σε αυτόν τον server ακόμη. Ζητήστε από τον διαχειριστή σας να ορίσει τον τομέα WebAuthn.',
+  'settings.passkey.add': 'Προσθήκη passkey',
+  'settings.passkey.addTitle': 'Προσθήκη passkey',
+  'settings.passkey.passwordPrompt':
+    'Επιβεβαιώστε τον τρέχοντα κωδικό σας και έπειτα ακολουθήστε τις οδηγίες της συσκευής σας.',
+  'settings.passkey.passwordRequired': 'Ο τρέχων κωδικός σας είναι υποχρεωτικός.',
+  'settings.passkey.namePlaceholder': 'Όνομα (προαιρετικό, π.χ. "iPhone")',
+  'settings.passkey.addedToast': 'Το passkey προστέθηκε',
+  'settings.passkey.added': 'Προστέθηκε',
+  'settings.passkey.addError': 'Δεν ήταν δυνατή η προσθήκη του passkey',
+  'settings.passkey.cancelled': 'Η ρύθμιση του passkey ακυρώθηκε',
+  'settings.passkey.deleted': 'Το passkey αφαιρέθηκε',
+  'settings.passkey.deleteConfirm':
+    'Αφαίρεση αυτού του passkey; Επιβεβαιώστε με τον κωδικό σας.',
+  'settings.passkey.rename': 'Μετονομασία',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Συγχρονισμένο',
+  'settings.passkey.deviceBound': 'Αυτή η συσκευή',
+  'settings.passkey.lastUsed': 'Τελευταία χρήση',
+  'settings.passkey.neverUsed': 'Δεν χρησιμοποιήθηκε ποτέ',
 };
 
 export default settings;

@@ -283,6 +283,28 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': '通行密钥',
+  'settings.passkey.description':
+    '使用通行密钥更快登录，并能抵御钓鱼攻击——通过指纹、面容、PIN 或硬件密钥验证。你的密码仍可作为备用方式。',
+  'settings.passkey.notConfigured':
+    '通行密钥已启用，但此服务器尚未完成完整配置。请联系管理员设置 WebAuthn 域名。',
+  'settings.passkey.add': '添加通行密钥',
+  'settings.passkey.addTitle': '添加通行密钥',
+  'settings.passkey.passwordPrompt': '确认你的当前密码，然后按照设备提示操作。',
+  'settings.passkey.passwordRequired': '需要输入你的当前密码。',
+  'settings.passkey.namePlaceholder': '名称（可选，如 "iPhone"）',
+  'settings.passkey.addedToast': '通行密钥已添加',
+  'settings.passkey.added': '已添加',
+  'settings.passkey.addError': '无法添加通行密钥',
+  'settings.passkey.cancelled': '已取消通行密钥设置',
+  'settings.passkey.deleted': '通行密钥已移除',
+  'settings.passkey.deleteConfirm': '移除此通行密钥？请输入密码确认。',
+  'settings.passkey.rename': '重命名',
+  'settings.passkey.defaultName': '通行密钥',
+  'settings.passkey.synced': '已同步',
+  'settings.passkey.deviceBound': '此设备',
+  'settings.passkey.lastUsed': '上次使用',
+  'settings.passkey.neverUsed': '从未使用',
 };
 
 export default settings;

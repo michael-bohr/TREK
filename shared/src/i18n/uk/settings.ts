@@ -295,6 +295,30 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'машина',
   "settings.currency": "Currency",
   "settings.currencyHint": "All amounts in Costs are converted to and shown in this currency.",
+  'settings.passkey.title': 'Passkeys',
+  'settings.passkey.description':
+    'Входьте швидше та з захистом від фішингу за допомогою passkey — відбитка пальця, обличчя, PIN-коду або апаратного ключа. Ваш пароль залишається як резервний варіант.',
+  'settings.passkey.notConfigured':
+    'Passkeys увімкнено, але цей сервер ще не повністю налаштовано. Попросіть адміністратора вказати домен WebAuthn.',
+  'settings.passkey.add': 'Додати passkey',
+  'settings.passkey.addTitle': 'Додати passkey',
+  'settings.passkey.passwordPrompt':
+    'Підтвердіть поточний пароль, а потім дотримуйтесь підказок на вашому пристрої.',
+  'settings.passkey.passwordRequired': 'Потрібен ваш поточний пароль.',
+  'settings.passkey.namePlaceholder': 'Назва (необов’язково, напр. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey додано',
+  'settings.passkey.added': 'Додано',
+  'settings.passkey.addError': 'Не вдалося додати passkey',
+  'settings.passkey.cancelled': 'Налаштування passkey скасовано',
+  'settings.passkey.deleted': 'Passkey видалено',
+  'settings.passkey.deleteConfirm':
+    'Видалити цей passkey? Підтвердіть паролем.',
+  'settings.passkey.rename': 'Перейменувати',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Синхронізовано',
+  'settings.passkey.deviceBound': 'Цей пристрій',
+  'settings.passkey.lastUsed': 'Останнє використання',
+  'settings.passkey.neverUsed': 'Не використовувався',
 };
 
 export default settings;

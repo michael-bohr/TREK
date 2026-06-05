@@ -341,5 +341,24 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Journey', // en-fallback
   'admin.addons.catalog.journey.description':
     'Trip tracking & travel journal with check-ins, photos, and daily stories', // en-fallback
+  'admin.passkey.title': 'تسجيل الدخول بمفتاح المرور',
+  'admin.passkey.cardHint':
+    'اسمح للمستخدمين بتسجيل الدخول باستخدام مفاتيح المرور (WebAuthn). معطّل افتراضيًا.',
+  'admin.passkey.login': 'تفعيل تسجيل الدخول بمفتاح المرور',
+  'admin.passkey.loginHint':
+    'إظهار خيار "تسجيل الدخول باستخدام مفتاح المرور" والسماح للمستخدمين بتسجيل مفاتيح المرور في إعداداتهم.',
+  'admin.passkey.notConfigured':
+    'لا يوجد نطاق WebAuthn صالح لهذا التثبيت بعد. عيّن APP_URL أو Relying Party ID أدناه — تبقى مفاتيح المرور مخفية حتى ذلك الحين.',
+  'admin.passkey.rpId': 'Relying Party ID (النطاق)',
+  'admin.passkey.rpIdHint':
+    'النطاق المجرّد الذي تُربط به مفاتيح المرور، مثل trek.example.org. اتركه فارغًا لاشتقاقه من APP_URL. تغييره لاحقًا يُبطل مفاتيح المرور الموجودة.',
+  'admin.passkey.origins': 'الأصول المسموح بها',
+  'admin.passkey.originsHint':
+    'أصول كاملة مفصولة بفواصل، مثل https://trek.example.org. اتركه فارغًا لاستخدام APP_URL.',
+  'admin.passkey.reset': 'إعادة تعيين مفاتيح المرور',
+  'admin.passkey.resetHint':
+    'إزالة جميع مفاتيح المرور لهذا المستخدم (مثلًا عند فقدان جهاز). سيظل بإمكانه تسجيل الدخول بكلمة المرور.',
+  'admin.passkey.resetConfirm': 'إزالة جميع مفاتيح المرور لـ {name}؟',
+  'admin.passkey.resetDone': 'تمت إزالة {count} من مفاتيح المرور',
 };
 export default admin;

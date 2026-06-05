@@ -94,5 +94,8 @@ const login: TranslationStrings = {
     'Dieser Link fehlt oder ist beschädigt. Fordere einen neuen an, um fortzufahren.',
   'login.resetPasswordFailed':
     'Zurücksetzen fehlgeschlagen. Der Link ist möglicherweise abgelaufen.',
+  'login.passkey.signIn': 'Mit Passkey anmelden',
+  'login.passkey.failed':
+    'Anmeldung mit Passkey fehlgeschlagen. Bitte erneut versuchen.',
 };
 export default login;
