@@ -18,6 +18,7 @@ import TripMembersModal from '../components/Trips/TripMembersModal'
 import { ReservationModal } from '../components/Planner/ReservationModal'
 import { TransportModal } from '../components/Planner/TransportModal'
 import BookingImportModal from '../components/Planner/BookingImportModal'
+import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 // MemoriesPanel moved to Journey addon
 import ReservationsPanel from '../components/Planner/ReservationsPanel'
 import PackingListPanel from '../components/Packing/PackingListPanel'
@@ -188,6 +189,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportAvailable,
+    airTrailAvailable, showAirTrailImport, setShowAirTrailImport,
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
@@ -634,6 +636,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
               assignments={assignments}
               files={files}
               onAdd={() => { setEditingTransport(null); setShowTransportModal(true) }}
+              onAirTrailImport={() => setShowAirTrailImport(true)}
+              airTrailAvailable={airTrailAvailable}
               onEdit={(r) => { setEditingTransport(r); setShowTransportModal(true) }}
               onDelete={handleDeleteReservation}
               onNavigateToFiles={() => handleTabChange('dateien')}
@@ -703,6 +707,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
       <ReservationModal isOpen={showReservationModal} onClose={() => { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) }} onSave={handleSaveReservation} reservation={editingReservation} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} />
       {showTransportModal && <TransportModal isOpen={showTransportModal} onClose={() => { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null) }} onSave={handleSaveTransport} reservation={editingTransport} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} />}
       <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} pushUndo={pushUndo} />
+      <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={tripId} pushUndo={pushUndo} />
       <ConfirmDialog
         isOpen={!!deletePlaceId}
         onClose={() => setDeletePlaceId(null)}
