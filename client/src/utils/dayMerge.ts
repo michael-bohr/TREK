@@ -29,6 +29,33 @@ export function getSpanPhase(
   return 'middle'
 }
 
+/**
+ * The route waypoints a transport contributes on a given day, respecting multi-day spans.
+ * A car rental (or any reservation whose span covers several days) is only routed to on its
+ * pickup day (the departure endpoint) and from on its drop-off day (the arrival endpoint) — on
+ * the days in between you simply hold the vehicle, so it adds no waypoints and must not pull the
+ * route to those points. Single-day transports contribute both endpoints.
+ */
+export function getTransportRouteEndpoints(
+  r: any,
+  dayId: number
+): { from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null } {
+  const ep = (role: 'from' | 'to'): { lat: number; lng: number } | null => {
+    const e = (r.endpoints || []).find((x: any) => x.role === role)
+    return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
+  }
+  switch (getSpanPhase(r, dayId)) {
+    case 'start':
+      return { from: ep('from'), to: null }
+    case 'end':
+      return { from: null, to: ep('to') }
+    case 'middle':
+      return { from: null, to: null }
+    default:
+      return { from: ep('from'), to: ep('to') }
+  }
+}
+
 export function getDisplayTimeForDay(
   r: { day_id?: number | null; end_day_id?: number | null; reservation_time?: string | null; reservation_end_time?: string | null },
   dayId: number

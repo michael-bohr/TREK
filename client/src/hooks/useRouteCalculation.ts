@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTripStore } from '../store/tripStore'
 import { calculateRouteWithLegs } from '../components/Map/RouteCalculator'
+import { getTransportRouteEndpoints } from '../utils/dayMerge'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult } from '../types'
 
@@ -53,12 +54,6 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       return pos != null
     })
 
-    // The departure/arrival coordinate of a transport, if its endpoints carry one.
-    const epLoc = (r: any, role: 'from' | 'to'): { lat: number; lng: number } | null => {
-      const e = (r.endpoints || []).find((x: any) => x.role === role)
-      return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
-    }
-
     // Build a unified list of places + transports sorted by effective position.
     type Entry =
       | { kind: 'place'; lat: number; lng: number; pos: number }
@@ -67,12 +62,15 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       ...da.filter(a => a.place?.lat && a.place?.lng).map(a => ({
         kind: 'place' as const, lat: a.place.lat!, lng: a.place.lng!, pos: a.order_index,
       })),
-      ...dayTransports.map(r => ({
-        kind: 'transport' as const,
-        from: epLoc(r, 'from'),
-        to: epLoc(r, 'to'),
-        pos: (r.day_positions?.[dayId] ?? r.day_positions?.[String(dayId)] ?? r.day_plan_position) as number,
-      })),
+      ...dayTransports.map(r => {
+        const { from, to } = getTransportRouteEndpoints(r, dayId)
+        return {
+          kind: 'transport' as const,
+          from,
+          to,
+          pos: (r.day_positions?.[dayId] ?? r.day_positions?.[String(dayId)] ?? r.day_plan_position) as number,
+        }
+      }),
     ].sort((a, b) => a.pos - b.pos)
 
     // Group located places into driving runs.

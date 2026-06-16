@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay, getTransportForDay, getMergedItems } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getMergedItems } from './dayMerge'
 
 describe('parseTimeToMinutes', () => {
   it('parses HH:MM string', () => {
@@ -31,6 +31,38 @@ describe('getSpanPhase', () => {
 
   it('returns middle for days in between', () => {
     expect(getSpanPhase({ day_id: 1, end_day_id: 3 }, 2)).toBe('middle')
+  })
+})
+
+describe('getTransportRouteEndpoints', () => {
+  const pickup = { role: 'from', lat: 48.1, lng: 11.5 }
+  const dropoff = { role: 'to', lat: 52.5, lng: 13.4 }
+  // A car rental spanning day 1 (pickup) through day 3 (drop-off).
+  const rental = { day_id: 1, end_day_id: 3, endpoints: [pickup, dropoff] }
+
+  it('routes to the pickup only on the start day of a multi-day rental', () => {
+    expect(getTransportRouteEndpoints(rental, 1)).toEqual({ from: { lat: 48.1, lng: 11.5 }, to: null })
+  })
+
+  it('routes from the drop-off only on the end day', () => {
+    expect(getTransportRouteEndpoints(rental, 3)).toEqual({ from: null, to: { lat: 52.5, lng: 13.4 } })
+  })
+
+  it('adds no waypoints on the days in between (regression for #1210)', () => {
+    expect(getTransportRouteEndpoints(rental, 2)).toEqual({ from: null, to: null })
+  })
+
+  it('uses both endpoints for a single-day transport', () => {
+    const sameDay = { day_id: 1, end_day_id: 1, endpoints: [pickup, dropoff] }
+    expect(getTransportRouteEndpoints(sameDay, 1)).toEqual({
+      from: { lat: 48.1, lng: 11.5 },
+      to: { lat: 52.5, lng: 13.4 },
+    })
+  })
+
+  it('returns nulls when the endpoints carry no coordinates', () => {
+    const noCoords = { day_id: 1, end_day_id: 1, endpoints: [{ role: 'from' }, { role: 'to' }] }
+    expect(getTransportRouteEndpoints(noCoords, 1)).toEqual({ from: null, to: null })
   })
 })
 

@@ -20,7 +20,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { isDayInAccommodationRange, getAccommodationAnchors } from '../../utils/dayOrder'
 import {
-  TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay,
+  TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
   type MergedItem,
 } from '../../utils/dayMerge'
@@ -383,10 +383,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     if (legsAbortRef.current) legsAbortRef.current.abort()
     if (!selectedDayId || !routeShown) { setRouteLegs({}); setHotelLegs({}); return }
     const merged = mergedItemsMap[selectedDayId] || []
-    const epLoc = (r: any, role: 'from' | 'to'): { lat: number; lng: number } | null => {
-      const e = (r.endpoints || []).find((x: any) => x.role === role)
-      return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
-    }
     const runs: { id: number; lat: number; lng: number }[][] = []
     let cur: { id: number; lat: number; lng: number }[] = []
     for (const it of merged) {
@@ -394,7 +390,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng })
       } else if (it.type === 'transport') {
         const r = it.data
-        const from = epLoc(r, 'from'), to = epLoc(r, 'to')
+        const { from, to } = getTransportRouteEndpoints(r, selectedDayId)
         if (from || to) {
           // Located transport: route to its departure point, break the run (the
           // flight/train itself isn't driven), and let its arrival start the next.
