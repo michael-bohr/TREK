@@ -98,8 +98,11 @@ persistence:
   enabled: true
   data:
     size: 1Gi
+    # Leave empty to use the cluster's default StorageClass; set to bind a specific class.
+    storageClassName: ""
   uploads:
     size: 1Gi
+    storageClassName: ""
 
 resources:
   requests:
