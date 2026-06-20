@@ -528,11 +528,16 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const isUnfinished = baseTotal(e) > 0 && payers.length === 0
     return (
       <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
-        <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}><Icon size={21} /></span>
+        <span style={{ position: 'relative', width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}>
+          <Icon size={21} />
+          {isMobile && isUnfinished && (
+            <span title={t('costs.unfinishedHint')} style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, lineHeight: 1, border: '2px solid var(--bg-card)' }}>!</span>
+          )}
+        </span>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
             <span className="text-content" style={{ fontSize: 15, fontWeight: 600 }}>{e.name}</span>
-            {isUnfinished && (
+            {isUnfinished && !isMobile && (
               <span title={t('costs.unfinishedHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 6px', borderRadius: 999, background: 'rgba(217,119,6,0.14)', color: '#d97706', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                 <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800 }}>!</span>
                 {t('costs.unfinished')}
