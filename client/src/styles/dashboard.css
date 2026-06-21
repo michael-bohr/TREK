@@ -456,6 +456,33 @@
 .trek-dash .add-trip-card .ttl { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
 .trek-dash .add-trip-card .sub { font-size: 13px; color: var(--ink-3); }
 
+/* Error banner — shown when the trip list or the auth check couldn't reach the
+   server, so a backend/IdP outage no longer looks like an empty (lost-data)
+   dashboard. Amber rather than red: it reassures (data is safe) more than it alarms. */
+.trek-dash .dash-error {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 18px; margin-bottom: 22px;
+  background: oklch(0.74 0.14 75 / 0.13);
+  border: 1px solid oklch(0.74 0.14 75 / 0.45);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-sm);
+}
+.trek-dash .dash-error-txt { flex: 1; min-width: 200px; font-size: 14px; color: var(--ink); }
+.trek-dash .dash-error-retry {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border: none; border-radius: var(--r-xs);
+  background: var(--ink); color: var(--surface);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: opacity .15s ease;
+}
+.trek-dash .dash-error-retry:hover { opacity: .88; }
+
+/* Empty state — a genuine "you have no trips yet" message, visually distinct
+   from the error banner above so an outage and a real empty list never look alike. */
+.trek-dash .trips-empty { margin-bottom: 18px; }
+.trek-dash .trips-empty h4 { font-size: 18px; font-weight: 600; color: var(--ink); margin: 0 0 6px; }
+.trek-dash .trips-empty p { font-size: 14px; color: var(--ink-3); margin: 0; }
+
 /* ----------------- tools sidebar ----------------- */
 .trek-dash .tool {
   background: var(--glass-bg); border-radius: var(--r-xl); padding: 24px 26px;
