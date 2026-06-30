@@ -196,7 +196,12 @@ export class MailIngestService {
     const source = this.getRow(userId, sourceId);
     if (!source) throw new Error('Mail source not found');
     const messages = await this.providerFor(source).scanSince(days);
-    return this.ingestMessages(source, messages);
+    const counts = await this.ingestMessages(source, messages);
+    // Record the check (so the UI shows "last checked") and advance the cursor past
+    // what we scanned so the next tick won't re-fetch it (dedupe covers re-runs anyway).
+    const maxUid = messages.reduce((m, msg) => Math.max(m, msg.uid), source.last_uid ?? 0);
+    db.prepare('UPDATE mail_sources SET last_uid = ?, last_polled_at = CURRENT_TIMESTAMP WHERE id = ?').run(maxUid, source.id);
+    return counts;
   }
 
   private async ingestMessages(source: SourceRow, messages: RawMessage[]): Promise<IngestCounts> {
