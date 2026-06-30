@@ -9,6 +9,7 @@ export const ADDON_IDS = {
   JOURNEY: 'journey',
   AIRTRAIL: 'airtrail',
   LLM_PARSING: 'llm_parsing',
+  MAIL_INGEST: 'mail_ingest',
 } as const;
 
 export type AddonId = typeof ADDON_IDS[keyof typeof ADDON_IDS];

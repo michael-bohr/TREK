@@ -98,6 +98,9 @@ async function bootstrap(): Promise<void> {
   // (/mcp, /.well-known, OAuth SDK, SPA catch-all). buildApp() owns the composition
   // order; it is shared with the integration-test harness so they can't drift.
   nestApp = await buildApp();
+  // Mail ingestion resolves its Nest service at fire time, so it can only start
+  // once the app is built (unlike the other scheduler jobs above).
+  scheduler.startMailIngest(nestApp);
   server = http.createServer(nestApp.getHttpAdapter().getInstance());
   if (HOST) server.listen(PORT, HOST, onListen);
   else server.listen(PORT, onListen);

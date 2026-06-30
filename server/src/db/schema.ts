@@ -505,6 +505,36 @@ function createTables(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_ncp_user ON notification_channel_preferences(user_id);
 
+    CREATE TABLE IF NOT EXISTS mail_sources (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL DEFAULT 'imap',
+      host TEXT NOT NULL,
+      port INTEGER NOT NULL DEFAULT 993,
+      username TEXT NOT NULL,
+      password_enc TEXT NOT NULL,
+      folder TEXT NOT NULL DEFAULT 'INBOX',
+      poll_interval_minutes INTEGER NOT NULL DEFAULT 60,
+      mode TEXT NOT NULL DEFAULT 'hybrid',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_uid INTEGER,
+      last_polled_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_mail_sources_user ON mail_sources(user_id);
+    CREATE TABLE IF NOT EXISTS mail_ingest_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id INTEGER NOT NULL REFERENCES mail_sources(id) ON DELETE CASCADE,
+      message_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL,
+      created_reservation_ids TEXT,
+      error TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (source_id, message_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_mail_ingest_log_source ON mail_ingest_log(source_id);
+
     CREATE TABLE IF NOT EXISTS migrations (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, timestamp bigint NOT NULL, name varchar NOT NULL);
   `);
 }

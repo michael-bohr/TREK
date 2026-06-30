@@ -55,7 +55,7 @@ const TYPE_KEYWORDS: [FlatType, RegExp][] = [
   ['event', /\b(ticket|concert|konzert|veranstaltung|eintritt|admission)\b/i],
 ];
 
-function detectType(text: string): FlatType | null {
+export function detectType(text: string): FlatType | null {
   for (const [type, re] of TYPE_KEYWORDS) if (re.test(text)) return type;
   return null;
 }
