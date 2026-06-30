@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink } from 'lucide-react'
+import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
@@ -58,6 +58,7 @@ export default function MailSourceSection(): React.ReactElement {
   const [busy, setBusy] = useState(false)
   const [testing, setTesting] = useState(false)
   const [catchingUp, setCatchingUp] = useState<number | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const load = async () => {
     try {
@@ -211,30 +212,44 @@ export default function MailSourceSection(): React.ReactElement {
             <p className="mt-1 text-xs text-content-faint">Default <code>INBOX</code>. Point at a dedicated folder to keep TREK out of the rest of your mail.</p>
           </div>
 
-          <details className="text-xs rounded-lg border border-edge bg-surface-secondary">
-            <summary className="cursor-pointer select-none px-3 py-2 flex items-center gap-1.5 text-content-secondary">
-              <KeyRound className="w-3.5 h-3.5" /> Where do I create an app password?
-            </summary>
-            <div className="px-3 pb-3 space-y-2">
-              <p className="text-content-faint">
-                Most providers block plain IMAP logins — generate an <strong>app password</strong> and make sure IMAP
-                is enabled in your mail settings, then paste it above.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {APP_PASSWORD_LINKS.map((p) => (
-                  <a
-                    key={p.label}
-                    href={p.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-edge text-content-secondary hover:bg-surface"
-                  >
-                    {p.label} <ExternalLink className="w-3 h-3" />
-                  </a>
-                ))}
+          {/* App-password help — mirrors the MCP "Client Configuration" collapsible. */}
+          <div className="rounded-lg border overflow-hidden border-edge">
+            <button
+              type="button"
+              onClick={() => setHelpOpen((o) => !o)}
+              className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary"
+            >
+              <span className="flex items-center gap-1.5 text-sm font-medium text-content-secondary">
+                <KeyRound className="w-4 h-4" /> Where do I create an app password?
+              </span>
+              {helpOpen ? (
+                <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              ) : (
+                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              )}
+            </button>
+            {helpOpen && (
+              <div className="p-3 border-t border-edge space-y-2">
+                <p className="text-xs text-content-faint">
+                  Most providers block plain IMAP logins — generate an <strong>app password</strong> and make sure IMAP
+                  is enabled in your mail settings, then paste it above.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {APP_PASSWORD_LINKS.map((p) => (
+                    <a
+                      key={p.label}
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-edge text-xs text-content-secondary hover:bg-surface"
+                    >
+                      {p.label} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-          </details>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <button
