@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, Save, Trash2, RefreshCw, Plug } from 'lucide-react'
+import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+
+// Direct links to each provider's app-password page. Most providers block plain
+// IMAP logins and require a generated app password (with IMAP enabled).
+const APP_PASSWORD_LINKS: { label: string; url: string }[] = [
+  { label: 'Gmail', url: 'https://myaccount.google.com/apppasswords' },
+  { label: 'Outlook / Microsoft', url: 'https://account.microsoft.com/security' },
+  { label: 'Yahoo', url: 'https://login.yahoo.com/account/security/app-passwords' },
+  { label: 'iCloud Mail', url: 'https://support.apple.com/102654' },
+  { label: 'Fastmail', url: 'https://app.fastmail.com/settings/security/devicekeys' },
+]
 
 /**
  * Settings → Integrations → Mail ingest. Connect a mailbox (IMAP) and TREK scans
@@ -192,6 +202,7 @@ export default function MailSourceSection(): React.ReactElement {
             <div>
               <label className="block text-sm font-medium mb-1.5 text-content-secondary">Password (app password)</label>
               <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={inputCls} />
+              <p className="mt-1 text-xs text-content-faint">Use an app password, not your login password.</p>
             </div>
           </div>
           <div>
@@ -199,6 +210,31 @@ export default function MailSourceSection(): React.ReactElement {
             <input type="text" autoComplete="off" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="INBOX" className={inputCls} />
             <p className="mt-1 text-xs text-content-faint">Default <code>INBOX</code>. Point at a dedicated folder to keep TREK out of the rest of your mail.</p>
           </div>
+
+          <details className="text-xs rounded-lg border border-edge bg-surface-secondary">
+            <summary className="cursor-pointer select-none px-3 py-2 flex items-center gap-1.5 text-content-secondary">
+              <KeyRound className="w-3.5 h-3.5" /> Where do I create an app password?
+            </summary>
+            <div className="px-3 pb-3 space-y-2">
+              <p className="text-content-faint">
+                Most providers block plain IMAP logins — generate an <strong>app password</strong> and make sure IMAP
+                is enabled in your mail settings, then paste it above.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {APP_PASSWORD_LINKS.map((p) => (
+                  <a
+                    key={p.label}
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-edge text-content-secondary hover:bg-surface"
+                  >
+                    {p.label} <ExternalLink className="w-3 h-3" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          </details>
 
           <div className="flex items-center gap-2">
             <button
