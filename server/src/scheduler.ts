@@ -408,8 +408,36 @@ function startAirTrailSync(): void {
   }, { timezone: tz });
 }
 
+// Mail ingestion (mail_ingest addon): poll connected mailboxes for booking emails
+// on an interval and file them onto trips. Mirrors startAirTrailSync — the cron
+// always fires; the per-tick addon gate lives in the callback so toggling the
+// addon takes effect without a restart, and runTick itself only processes sources
+// whose own poll interval has elapsed. The Nest service is resolved at fire time
+// because the scheduler starts before the Nest app is built.
+let mailIngestTask: ScheduledTask | null = null;
+
+interface NestAppLike { get(token: unknown): { runTick(): Promise<void> } }
+
+function startMailIngest(app: NestAppLike): void {
+  if (mailIngestTask) { mailIngestTask.stop(); mailIngestTask = null; }
+  const tz = process.env.TZ || 'UTC';
+  mailIngestTask = cron.schedule('*/5 * * * *', async () => {
+    try {
+      const { isAddonEnabled } = require('./services/adminService');
+      const { ADDON_IDS } = require('./addons');
+      if (!isAddonEnabled(ADDON_IDS.MAIL_INGEST)) return;
+      const { MailIngestService } = require('./nest/mail-ingest/mail-ingest.service');
+      await app.get(MailIngestService).runTick();
+    } catch (err: unknown) {
+      logError(`Mail ingest tick failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }, { timezone: tz });
+  logInfo('Mail ingest: scheduled every 5m (gated by mail_ingest addon)');
+}
+
 function stop(): void {
   if (currentTask) { currentTask.stop(); currentTask = null; }
+  if (mailIngestTask) { mailIngestTask.stop(); mailIngestTask = null; }
   if (demoTask) { demoTask.stop(); demoTask = null; }
   if (reminderTask) { reminderTask.stop(); reminderTask = null; }
   if (versionCheckTask) { versionCheckTask.stop(); versionCheckTask = null; }
@@ -419,4 +447,4 @@ function stop(): void {
   if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, purgeExpiredIdempotencyKeys, startTrekPhotoCacheCleanup, startPlacePhotoCacheCleanup, startAirTrailSync, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, purgeExpiredIdempotencyKeys, startTrekPhotoCacheCleanup, startPlacePhotoCacheCleanup, startAirTrailSync, startMailIngest, loadSettings, saveSettings, VALID_INTERVALS };
