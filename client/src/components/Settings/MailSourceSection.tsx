@@ -47,6 +47,14 @@ async function api<T = unknown>(path: string, opts: RequestInit = {}): Promise<T
   return data
 }
 
+// SQLite CURRENT_TIMESTAMP is UTC ('YYYY-MM-DD HH:MM:SS') with no zone marker, so
+// mark it as UTC before formatting — otherwise the browser renders the UTC value as
+// if it were local time.
+function fmtChecked(ts: string): string {
+  const d = new Date(`${ts.replace(' ', 'T')}Z`)
+  return isNaN(d.getTime()) ? ts : d.toLocaleString()
+}
+
 export default function MailSourceSection(): React.ReactElement {
   const toast = useToast()
   const [sources, setSources] = useState<MailSource[]>([])
@@ -162,7 +170,7 @@ export default function MailSourceSection(): React.ReactElement {
                   <div className="text-sm text-content truncate">{s.username}</div>
                   <div className="text-xs text-content-faint truncate">
                     {s.host}:{s.port} · {s.folder}
-                    {s.last_polled_at ? ` · last checked ${new Date(s.last_polled_at).toLocaleString()}` : ' · not checked yet'}
+                    {s.last_polled_at ? ` · last checked ${fmtChecked(s.last_polled_at)}` : ' · not checked yet'}
                   </div>
                 </div>
                 <button
