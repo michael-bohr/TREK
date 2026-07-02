@@ -171,6 +171,25 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     expect(rows()).toEqual([{ status: 'imported', trip_id: 999 }]);
   });
 
+  it('treats a silent confirm() failure (created:[]) as an error, not a false imported', async () => {
+    // confirm() catches per-item persistence errors internally and still resolves
+    // — reproduced live by a missing DB column that made createReservation() throw
+    // inside confirm()'s own try/catch, so nothing was created but nothing threw.
+    preview.mockResolvedValue({ items: [flightItem], warnings: [], files: [] });
+    confirm.mockResolvedValue({ created: [] });
+    queued.current = [flightMsg];
+
+    const counts = await svc.catchUp(1, sourceId, 30);
+
+    expect(counts).toMatchObject({ imported: 0, errored: 1 });
+    expect(rows()).toEqual([{ status: 'error', trip_id: null }]);
+
+    // And it must retry on a later catch-up rather than staying stuck.
+    confirm.mockResolvedValue({ created: [{ id: 1 }] });
+    const retry = await svc.catchUp(1, sourceId, 30);
+    expect(retry).toMatchObject({ imported: 1, errored: 0 });
+  });
+
   it('leaves an item with no usable dates pending instead of guessing a trip', async () => {
     const undated = { ...flightItem, reservation_time: undefined, reservation_end_time: undefined, endpoints: [] };
     preview.mockResolvedValue({ items: [undated], warnings: [], files: [] });

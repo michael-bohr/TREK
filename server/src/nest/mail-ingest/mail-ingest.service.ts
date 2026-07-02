@@ -270,6 +270,13 @@ export class MailIngestService {
     // (LLM-derived, or kitinerary's own field-completeness flags) rides along on
     // the reservation as the existing review badge, not a gate on saving at all.
     const { created } = await this.bookingImport.confirm(String(tripId), items, undefined);
+    if (created.length === 0) {
+      // confirm() swallows per-item persistence errors internally and still
+      // resolves — nothing was actually written despite not throwing. Surface
+      // it as a real failure (logged 'error', retried on a later tick) instead
+      // of falsely claiming 'imported' with an empty result.
+      throw new Error(`confirm() created 0 of ${items.length} reservation(s) — see server logs for the per-item error`);
+    }
     const needsReview = items.some((it) => it.needs_review);
     this.log(source.id, msg.messageId, 'imported', tripId, created.map((r) => r.id));
     this.notify(source.user_id, { status: 'imported', tripId, count: created.length, subject: msg.subject, needsReview });
