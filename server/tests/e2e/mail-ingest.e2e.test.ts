@@ -7,6 +7,8 @@
  *   - the same message a second time → deduped (skipped), no re-import
  *   - a non-booking newsletter → skipped without ever parsing
  *   - a flight that overlaps an existing trip → attaches to it
+ *   - a needs_review (LLM-derived) item still gets persisted, not stuck pending
+ *   - an item with no usable dates stays pending, since no trip can be picked
  */
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { BookingImportService } from '../../src/nest/booking-import/booking-import.service';
@@ -151,5 +153,33 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     expect(createTrip).not.toHaveBeenCalled();
     expect(confirm).toHaveBeenCalledWith('42', [flightItem], undefined);
     expect(rows()).toEqual([{ status: 'imported', trip_id: 42 }]);
+  });
+
+  it('imports a needs_review (LLM-derived) item instead of leaving it unpersisted', async () => {
+    // Every LLM-extracted item is flagged needs_review regardless of completeness
+    // (booking-import.service.ts) — that must not block persistence. It's the
+    // same "persist + badge" pattern AirTrail sync already uses.
+    const reviewItem = { ...flightItem, needs_review: true };
+    preview.mockResolvedValue({ items: [reviewItem], warnings: [], files: [] });
+    queued.current = [flightMsg];
+
+    const counts = await svc.catchUp(1, sourceId, 30);
+
+    expect(counts).toMatchObject({ imported: 1, pending: 0 });
+    expect(confirm).toHaveBeenCalledWith('999', [reviewItem], undefined);
+    expect(rows()).toEqual([{ status: 'imported', trip_id: 999 }]);
+  });
+
+  it('leaves an item with no usable dates pending instead of guessing a trip', async () => {
+    const undated = { ...flightItem, reservation_time: undefined, reservation_end_time: undefined, endpoints: [] };
+    preview.mockResolvedValue({ items: [undated], warnings: [], files: [] });
+    queued.current = [flightMsg];
+
+    const counts = await svc.catchUp(1, sourceId, 30);
+
+    expect(counts).toMatchObject({ imported: 0, pending: 1 });
+    expect(confirm).not.toHaveBeenCalled();
+    expect(createTrip).not.toHaveBeenCalled();
+    expect(rows()).toEqual([{ status: 'pending', trip_id: null }]);
   });
 });

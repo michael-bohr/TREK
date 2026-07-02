@@ -243,17 +243,15 @@ export class MailIngestService {
     }
 
     const resolution = resolveMessage(items, trips);
-    const lowConfidence = items.some((it) => it.needs_review) || resolution.action === 'ambiguous';
 
-    if (lowConfidence) {
-      const tripId = resolution.action === 'attach' ? resolution.tripId : null;
-      const reason = resolution.action === 'ambiguous' ? resolution.reason : 'low-confidence (AI/partial)';
-      this.log(source.id, msg.messageId, 'pending', tripId, null, reason);
-      this.notify(source.user_id, { status: 'pending', subject: msg.subject, reason });
+    // Genuinely nothing to persist yet: no usable dates, or the trip can't be
+    // determined (0 or >1 candidates). Everything else has a known trip.
+    if (resolution.action === 'ambiguous') {
+      this.log(source.id, msg.messageId, 'pending', null, null, resolution.reason);
+      this.notify(source.user_id, { status: 'pending', subject: msg.subject, reason: resolution.reason });
       return 'pending';
     }
 
-    // High-confidence: attach to the matched trip, or create one.
     let tripId: number;
     if (resolution.action === 'create') {
       const created = createTrip(source.user_id, {
@@ -268,9 +266,13 @@ export class MailIngestService {
       tripId = resolution.tripId;
     }
 
+    // Persist unconditionally, same as AirTrail's unattended sync: needs_review
+    // (LLM-derived, or kitinerary's own field-completeness flags) rides along on
+    // the reservation as the existing review badge, not a gate on saving at all.
     const { created } = await this.bookingImport.confirm(String(tripId), items, undefined);
+    const needsReview = items.some((it) => it.needs_review);
     this.log(source.id, msg.messageId, 'imported', tripId, created.map((r) => r.id));
-    this.notify(source.user_id, { status: 'imported', tripId, count: created.length, subject: msg.subject });
+    this.notify(source.user_id, { status: 'imported', tripId, count: created.length, subject: msg.subject, needsReview });
     return 'imported';
   }
 
