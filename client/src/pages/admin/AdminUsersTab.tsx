@@ -1,4 +1,5 @@
 import React from 'react'
+import CustomSelect from '../../components/shared/CustomSelect'
 import { Shield, Trash2, Edit2, UserPlus, Link2, Copy, Plus } from 'lucide-react'
 import Modal from '../../components/shared/Modal'
 import PermissionsPanel from '../../components/Admin/PermissionsPanel'
@@ -224,16 +225,16 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
           {inviteTrips.length > 0 && (
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{t('admin.invite.tripLabel')}</label>
-              <select
+              <CustomSelect
                 value={inviteForm.trip_id}
-                onChange={e => setInviteForm(f => ({ ...f, trip_id: e.target.value === '' ? '' : Number(e.target.value) }))}
-                className="w-full py-2 px-2.5 rounded-lg text-sm border border-slate-200 bg-white text-slate-700 focus:border-slate-400 outline-none"
-              >
-                <option value="">{t('admin.invite.tripNone')}</option>
-                {inviteTrips.map(tr => (
-                  <option key={tr.id} value={tr.id}>{tr.title}</option>
-                ))}
-              </select>
+                onChange={v => setInviteForm(f => ({ ...f, trip_id: v === '' ? '' : Number(v) }))}
+                options={[
+                  { value: '', label: t('admin.invite.tripNone') },
+                  ...inviteTrips.map(tr => ({ value: tr.id, label: tr.title })),
+                ]}
+                searchable={inviteTrips.length > 8}
+                placeholder={t('admin.invite.tripNone')}
+              />
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{t('admin.invite.tripHint')}</p>
             </div>
           )}
