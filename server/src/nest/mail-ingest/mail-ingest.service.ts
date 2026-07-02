@@ -289,9 +289,12 @@ export class MailIngestService {
       .all(userId, userId) as ResolverTrip[];
   }
 
+  /** 'pending'/'error' are not terminal — nothing was persisted, so a later tick
+   *  (new trip created, transient failure gone) should get another attempt.
+   *  Only 'imported'/'skipped' are done-for-good. */
   private seen(sourceId: number, messageId: string): boolean {
     return !!db
-      .prepare('SELECT 1 FROM mail_ingest_log WHERE source_id = ? AND message_id = ?')
+      .prepare("SELECT 1 FROM mail_ingest_log WHERE source_id = ? AND message_id = ? AND status IN ('imported', 'skipped')")
       .get(sourceId, messageId);
   }
 
@@ -304,8 +307,11 @@ export class MailIngestService {
     error?: string,
   ): void {
     db.prepare(
-      `INSERT OR IGNORE INTO mail_ingest_log (source_id, message_id, status, trip_id, created_reservation_ids, error)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO mail_ingest_log (source_id, message_id, status, trip_id, created_reservation_ids, error)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (source_id, message_id) DO UPDATE SET
+         status = excluded.status, trip_id = excluded.trip_id,
+         created_reservation_ids = excluded.created_reservation_ids, error = excluded.error`,
     ).run(sourceId, messageId, status, tripId, reservationIds ? JSON.stringify(reservationIds) : null, error ?? null);
   }
 

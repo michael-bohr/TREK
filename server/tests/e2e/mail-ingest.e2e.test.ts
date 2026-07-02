@@ -9,6 +9,7 @@
  *   - a flight that overlaps an existing trip → attaches to it
  *   - a needs_review (LLM-derived) item still gets persisted, not stuck pending
  *   - an item with no usable dates stays pending, since no trip can be picked
+ *   - a pending message is retried (not dedupe-blocked) once it can resolve
  */
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { BookingImportService } from '../../src/nest/booking-import/booking-import.service';
@@ -181,5 +182,24 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     expect(confirm).not.toHaveBeenCalled();
     expect(createTrip).not.toHaveBeenCalled();
     expect(rows()).toEqual([{ status: 'pending', trip_id: null }]);
+  });
+
+  it('retries a pending message on a later catch-up instead of dedupe-blocking it forever', async () => {
+    // Attach-only type (not flight/hotel) with no matching trip yet → ambiguous/pending.
+    const carItem = { ...flightItem, type: 'car', title: 'Rental car pickup' };
+    preview.mockResolvedValue({ items: [carItem], warnings: [], files: [] });
+    queued.current = [flightMsg];
+
+    const first = await svc.catchUp(1, sourceId, 30);
+    expect(first).toMatchObject({ imported: 0, pending: 1 });
+    expect(rows()).toEqual([{ status: 'pending', trip_id: null }]);
+
+    // A trip that overlaps the item's dates now exists.
+    db.prepare('INSERT INTO trips (id, user_id, start_date, end_date) VALUES (7, 1, ?, ?)').run('2026-07-01', '2026-07-10');
+
+    const second = await svc.catchUp(1, sourceId, 30);
+    expect(second).toMatchObject({ imported: 1, pending: 0 });
+    expect(confirm).toHaveBeenCalledWith('7', [carItem], undefined);
+    expect(rows()).toEqual([{ status: 'imported', trip_id: 7 }]);
   });
 });
