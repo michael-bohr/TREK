@@ -317,16 +317,32 @@ export class MailIngestService {
       if (span && trip) this.extendTripSpan(trip, span);
     }
 
+    // Second dedupe level, beyond message-ids: a re-forwarded or re-sent
+    // confirmation (new message-id, same booking) must not double-book. Items
+    // whose confirmation number already exists on the target trip are dropped;
+    // items without a confirmation have no safe key and pass through.
+    const fresh = items.filter(
+      (it) =>
+        !it.confirmation_number ||
+        !db
+          .prepare('SELECT 1 FROM reservations WHERE trip_id = ? AND type = ? AND confirmation_number = ?')
+          .get(tripId, it.type, it.confirmation_number),
+    );
+    if (fresh.length === 0) {
+      this.log(source.id, msg, 'skipped', tripId, null, 'already imported (duplicate confirmation)');
+      return 'skipped';
+    }
+
     // Persist unconditionally, same as AirTrail's unattended sync: needs_review
     // (LLM-derived, or kitinerary's own field-completeness flags) rides along on
     // the reservation as the existing review badge, not a gate on saving at all.
-    const { created } = await this.bookingImport.confirm(String(tripId), items, undefined);
+    const { created } = await this.bookingImport.confirm(String(tripId), fresh, undefined);
     if (created.length === 0) {
       // confirm() swallows per-item persistence errors internally and still
       // resolves — nothing was actually written despite not throwing. Surface
       // it as a real failure (logged 'error', retried on a later tick) instead
       // of falsely claiming 'imported' with an empty result.
-      throw new Error(`confirm() created 0 of ${items.length} reservation(s) — see server logs for the per-item error`);
+      throw new Error(`confirm() created 0 of ${fresh.length} reservation(s) — see server logs for the per-item error`);
     }
     this.log(source.id, msg, 'imported', tripId, created.map((r) => r.id));
     const trip = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;

@@ -14,6 +14,7 @@
  *   - import/pending each fire the matching in-app notification event
  *   - per-passenger duplicate items collapse to one import
  *   - an attached booking past the trip's edge stretches the trip's dates
+ *   - a re-forwarded confirmation (new message-id) skips, not double-books
  */
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { BookingImportService } from '../../src/nest/booking-import/booking-import.service';
@@ -28,6 +29,8 @@ const { db } = vi.hoisted(() => {
       title TEXT, start_date TEXT, end_date TEXT, is_archived INTEGER NOT NULL DEFAULT 0,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);
+    CREATE TABLE reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+      type TEXT, confirmation_number TEXT);
     CREATE TABLE mail_sources (
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL DEFAULT 'imap',
       host TEXT NOT NULL, port INTEGER NOT NULL DEFAULT 993, username TEXT NOT NULL, password_enc TEXT NOT NULL,
@@ -116,7 +119,7 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
   });
 
   beforeEach(async () => {
-    db.exec('DELETE FROM trips; DELETE FROM trip_members; DELETE FROM mail_sources; DELETE FROM mail_ingest_log;');
+    db.exec('DELETE FROM trips; DELETE FROM trip_members; DELETE FROM reservations; DELETE FROM mail_sources; DELETE FROM mail_ingest_log;');
     preview.mockReset();
     confirm.mockReset().mockResolvedValue({ created: [{ id: 1 }] });
     createTrip.mockClear().mockReturnValue({ tripId: 999 });
@@ -247,6 +250,22 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
 
     expect(counts).toMatchObject({ imported: 1 });
     expect(confirm).toHaveBeenCalledWith('999', [flightItem], undefined);
+  });
+
+  it('skips a re-forwarded confirmation (new message-id, same booking) instead of double-booking', async () => {
+    db.prepare('INSERT INTO trips (id, user_id, start_date, end_date) VALUES (42, 1, ?, ?)').run('2026-07-01', '2026-07-10');
+    // The booking already exists on the trip — imported from an earlier message.
+    db.prepare("INSERT INTO reservations (trip_id, type, confirmation_number) VALUES (42, 'flight', 'EL7AGE')").run();
+    const confirmed = { ...flightItem, confirmation_number: 'EL7AGE' };
+    preview.mockResolvedValue({ items: [confirmed], warnings: [], files: [] });
+    // Re-forward: different message-id, same confirmation inside.
+    queued.current = [{ ...flightMsg, uid: 13, messageId: '<flight-refwd@test>' }];
+
+    const counts = await svc.catchUp(1, sourceId, 30);
+
+    expect(counts).toMatchObject({ imported: 0, skipped: 1 });
+    expect(confirm).not.toHaveBeenCalled();
+    expect(rows()).toEqual([{ status: 'skipped', trip_id: 42 }]);
   });
 
   it('extends the trip span when an attached booking reaches past its edge', async () => {
