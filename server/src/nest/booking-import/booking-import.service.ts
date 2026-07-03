@@ -3,7 +3,7 @@ import { broadcast } from '../../websocket';
 import { checkPermission } from '../../services/permissions';
 import { verifyTripAccess } from '../../services/tripAccess';
 import { createReservation } from '../../services/reservationService';
-import { createPlace } from '../../services/placeService';
+import { createPlace, findDuplicatePlace } from '../../services/placeService';
 import { createBudgetItem } from '../../services/budgetService';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
@@ -135,9 +135,17 @@ export class BookingImportService {
       try {
         const { _venue, _accommodation, source: _src, ...reservationData } = item;
 
-        // Auto-create a place row for venue-based reservations
+        // Auto-create a place row for venue-based reservations. A venue the trip
+        // already has (matched by name, or by coords when named differently) is
+        // reused instead of duplicated — the same hotel across a multi-night /
+        // multi-booking import must not become one place row per booking.
         let placeId: number | undefined;
-        if (_venue?.name) {
+        const existingPlace = _venue?.name
+          ? findDuplicatePlace(tripId, { name: _venue.name, lat: _venue.lat ?? null, lng: _venue.lng ?? null })
+          : null;
+        if (existingPlace) {
+          placeId = existingPlace.id;
+        } else if (_venue?.name) {
           // Geocode before creating so the broadcast carries the coordinates
           let lat = _venue.lat;
           let lng = _venue.lng;

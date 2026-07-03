@@ -8,10 +8,15 @@ vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../../../src/services/permissions', () => ({ checkPermission: vi.fn(() => true) }));
 vi.mock('../../../../src/services/tripAccess', () => ({ verifyTripAccess: vi.fn() }));
 vi.mock('../../../../src/services/reservationService', () => ({ createReservation: vi.fn() }));
-vi.mock('../../../../src/services/placeService', () => ({ createPlace: vi.fn() }));
+vi.mock('../../../../src/services/placeService', () => ({ createPlace: vi.fn(), findDuplicatePlace: vi.fn() }));
 vi.mock('../../../../src/services/mapsService', () => ({ searchNominatim: vi.fn() }));
+// adminService pulls the MCP SDK import chain — stub it so the module loads in vitest.
+vi.mock('../../../../src/services/adminService', () => ({ isAddonEnabled: vi.fn(() => false) }));
 
 import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
+import { createReservation } from '../../../../src/services/reservationService';
+import { createPlace, findDuplicatePlace } from '../../../../src/services/placeService';
+import { searchNominatim } from '../../../../src/services/mapsService';
 
 const HOTEL_KI = { '@type': 'LodgingReservation', reservationNumber: 'ABC', reservationFor: { name: 'Hotel X' }, checkinTime: '2026-06-11T15:00', checkoutTime: '2026-06-12T11:00' };
 const file = (name = 'a.pdf') => ({ buffer: Buffer.from('x'), originalname: name } as any);
@@ -75,5 +80,42 @@ describe('BookingImportService.preview', () => {
     expect(extractor.extract).not.toHaveBeenCalled();
     expect(llmParse.parse).toHaveBeenCalled();
     expect(res.items[0].needs_review).toBe(true);
+  });
+});
+
+describe('BookingImportService.confirm — venue place dedupe', () => {
+  // Venue-only item: no endpoints (no geocode loop), no _accommodation (no day
+  // resolution), so the place-handling branch is isolated.
+  const venueItem = {
+    type: 'restaurant',
+    title: 'Sushi Saito',
+    source: { fileName: 'a.eml', index: 0 },
+    _venue: { name: 'Sushi Saito' },
+  } as any;
+
+  it('reuses an existing trip place instead of duplicating the venue', async () => {
+    vi.mocked(findDuplicatePlace).mockReturnValue({ id: 55, google_ftid: null });
+    vi.mocked(createReservation).mockReturnValue({ reservation: { id: 9 }, accommodationCreated: false } as any);
+    const { svc } = make({ kit: true });
+
+    const res = await svc.confirm('1', [venueItem], undefined);
+
+    expect(findDuplicatePlace).toHaveBeenCalledWith('1', { name: 'Sushi Saito', lat: null, lng: null });
+    expect(createPlace).not.toHaveBeenCalled();
+    expect(createReservation).toHaveBeenCalledWith('1', expect.objectContaining({ place_id: 55 }));
+    expect(res.created).toEqual([{ id: 9 }]);
+  });
+
+  it('creates and links the place when the trip has no match', async () => {
+    vi.mocked(findDuplicatePlace).mockReturnValue(null);
+    vi.mocked(searchNominatim).mockResolvedValue([]);
+    vi.mocked(createPlace).mockReturnValue({ id: 77 } as any);
+    vi.mocked(createReservation).mockReturnValue({ reservation: { id: 10 }, accommodationCreated: false } as any);
+    const { svc } = make({ kit: true });
+
+    await svc.confirm('1', [venueItem], undefined);
+
+    expect(createPlace).toHaveBeenCalledWith('1', expect.objectContaining({ name: 'Sushi Saito' }));
+    expect(createReservation).toHaveBeenCalledWith('1', expect.objectContaining({ place_id: 77 }));
   });
 });

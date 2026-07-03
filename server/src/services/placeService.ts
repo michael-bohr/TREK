@@ -692,7 +692,7 @@ function googleMapsFeatureIdFromItem(item: unknown): string | null {
   return null;
 }
 
-function findDuplicatePlace(
+export function findDuplicatePlace(
   tripId: string,
   place: { name: string | null | undefined; lat: number | null; lng: number | null },
 ): { id: number; google_ftid: string | null } | null {
