@@ -55,6 +55,19 @@ export interface IngestCounts {
   errored: number;
 }
 
+export interface ActivityRow {
+  id: number;
+  status: string;
+  subject: string | null;
+  from_address: string | null;
+  trip_id: number | null;
+  trip_title: string | null;
+  reservation_count: number;
+  error: string | null;
+  source_username: string;
+  created_at: string;
+}
+
 @Injectable()
 export class MailIngestService {
   constructor(private readonly bookingImport: BookingImportService) {}
@@ -152,6 +165,32 @@ export class MailIngestService {
       username: source.username,
       password: String(decrypt_api_key(source.password_enc) ?? ''),
       folder: source.folder,
+    });
+  }
+
+  /** Recent ingest activity across all the user's sources, newest first — the
+   *  audit view for "what did mail-ingest actually do with my inbox". */
+  listActivity(userId: number, limit: number): ActivityRow[] {
+    const rows = db
+      .prepare(
+        `SELECT l.id, l.status, l.subject, l.from_address, l.trip_id, l.error, l.created_at,
+                l.created_reservation_ids, t.title AS trip_title, s.username AS source_username
+         FROM mail_ingest_log l
+         JOIN mail_sources s ON s.id = l.source_id AND s.user_id = ?
+         LEFT JOIN trips t ON t.id = l.trip_id
+         ORDER BY l.created_at DESC, l.id DESC
+         LIMIT ?`,
+      )
+      .all(userId, limit) as (Omit<ActivityRow, 'reservation_count'> & { created_reservation_ids: string | null })[];
+    return rows.map(({ created_reservation_ids, ...r }) => {
+      let count = 0;
+      try {
+        const parsed: unknown = created_reservation_ids ? JSON.parse(created_reservation_ids) : null;
+        if (Array.isArray(parsed)) count = parsed.length;
+      } catch {
+        /* malformed JSON counts as 0 */
+      }
+      return { ...r, reservation_count: count };
     });
   }
 

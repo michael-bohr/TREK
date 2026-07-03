@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink, ChevronDown, ChevronRight, History } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
@@ -31,6 +32,26 @@ interface MailSource {
   mode: string
   enabled: boolean
   last_polled_at: string | null
+}
+
+interface ActivityRow {
+  id: number
+  status: string
+  subject: string | null
+  from_address: string | null
+  trip_id: number | null
+  trip_title: string | null
+  reservation_count: number
+  error: string | null
+  source_username: string
+  created_at: string
+}
+
+const STATUS_PILL: Record<string, string> = {
+  imported: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  error: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  skipped: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 }
 
 const inputCls =
@@ -67,6 +88,9 @@ export default function MailSourceSection(): React.ReactElement {
   const [testing, setTesting] = useState(false)
   const [catchingUp, setCatchingUp] = useState<number | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [activityOpen, setActivityOpen] = useState(false)
+  // null = never fetched; fetched lazily on first expand, refreshed after a catch-up.
+  const [activity, setActivity] = useState<ActivityRow[] | null>(null)
 
   const load = async () => {
     try {
@@ -78,6 +102,20 @@ export default function MailSourceSection(): React.ReactElement {
   useEffect(() => {
     load()
   }, [])
+
+  const loadActivity = async () => {
+    try {
+      setActivity(await api<ActivityRow[]>('/activity?limit=20'))
+    } catch {
+      setActivity([])
+    }
+  }
+
+  const toggleActivity = () => {
+    const opening = !activityOpen
+    setActivityOpen(opening)
+    if (opening && activity === null) loadActivity()
+  }
 
   const body = () => ({
     host: host.trim(),
@@ -142,6 +180,7 @@ export default function MailSourceSection(): React.ReactElement {
       const r = await api<{ imported: number; pending: number; skipped: number }>(`/sources/${s.id}/catch-up?days=30`, { method: 'POST' })
       toast.success(`Caught up — ${r.imported} added, ${r.pending} to review, ${r.skipped} skipped`)
       load()
+      if (activity !== null) loadActivity()
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -188,6 +227,62 @@ export default function MailSourceSection(): React.ReactElement {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Recent activity — what mail-ingest actually did with the inbox. Mirrors
+            the app-password collapsible; rows come from the ingest audit log. */}
+        {sources.length > 0 && (
+          <div className="rounded-lg border overflow-hidden border-edge">
+            <button
+              type="button"
+              onClick={toggleActivity}
+              className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary"
+            >
+              <span className="flex items-center gap-1.5 text-sm font-medium text-content-secondary">
+                <History className="w-4 h-4" /> Recent activity
+              </span>
+              {activityOpen ? (
+                <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              ) : (
+                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              )}
+            </button>
+            {activityOpen && (
+              <div className="border-t border-edge divide-y divide-edge max-h-80 overflow-y-auto">
+                {activity === null ? (
+                  <p className="p-3 text-xs text-content-faint">Loading…</p>
+                ) : activity.length === 0 ? (
+                  <p className="p-3 text-xs text-content-faint">Nothing processed yet — run a catch-up or wait for the next scheduled check.</p>
+                ) : (
+                  activity.map((a) => (
+                    <div key={a.id} className="px-3 py-2 flex items-start gap-2">
+                      <span className={`shrink-0 mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded ${STATUS_PILL[a.status] ?? STATUS_PILL.skipped}`}>
+                        {a.status}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs text-content truncate" title={a.from_address ?? undefined}>
+                          {a.subject || '(no subject)'}
+                        </div>
+                        <div className="text-[11px] text-content-faint truncate">
+                          {fmtChecked(a.created_at)}
+                          {a.trip_id != null && a.trip_title && (
+                            <>
+                              {' · '}
+                              <Link to={`/trips/${a.trip_id}`} className="underline hover:text-content">
+                                {a.trip_title}
+                              </Link>
+                              {a.reservation_count > 0 && ` (${a.reservation_count} added)`}
+                            </>
+                          )}
+                          {a.error && ` · ${a.error}`}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 

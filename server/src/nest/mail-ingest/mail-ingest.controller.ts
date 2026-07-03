@@ -18,6 +18,12 @@ export class MailIngestController {
     return this.mailIngest.listSources(user.id);
   }
 
+  @Get('activity')
+  activity(@CurrentUser() user: User, @Query('limit') limit?: string) {
+    const n = Math.min(100, Math.max(1, Number(limit) || 20));
+    return this.mailIngest.listActivity(user.id, n);
+  }
+
   @Post('sources')
   async add(@CurrentUser() user: User, @Body() body: MailSourceInput) {
     this.validate(body);
