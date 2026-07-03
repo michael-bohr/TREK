@@ -32,6 +32,7 @@ const { db } = vi.hoisted(() => {
     CREATE TABLE mail_ingest_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL, message_id TEXT NOT NULL,
       status TEXT NOT NULL, trip_id INTEGER, created_reservation_ids TEXT, error TEXT,
+      subject TEXT, from_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE (source_id, message_id));
   `);
   return { db: tmp };

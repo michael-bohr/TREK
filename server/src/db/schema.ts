@@ -595,6 +595,8 @@ function createTables(db: Database.Database): void {
       trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL,
       created_reservation_ids TEXT,
       error TEXT,
+      subject TEXT,
+      from_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE (source_id, message_id)
     );

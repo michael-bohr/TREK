@@ -3327,6 +3327,15 @@ function runMigrations(db: Database.Database): void {
         "INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('mail_ingest', 'Mail Ingest', 'Auto-import booking emails from your mailbox onto trips', 'integration', 'Mail', 0, 17)",
       ).run();
     },
+    // Migration 156: subject/from_address on the ingest log so the activity view
+    // can show which email each row was (message_id alone is opaque). Also fixes
+    // the mail_ingest addon's sort_order where an earlier build seeded it at 16,
+    // which now collides with collections.
+    () => {
+      try { db.exec('ALTER TABLE mail_ingest_log ADD COLUMN subject TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      try { db.exec('ALTER TABLE mail_ingest_log ADD COLUMN from_address TEXT'); } catch (err) { console.warn('[migrations] Non-fatal migration step failed:', err); }
+      db.prepare("UPDATE addons SET sort_order = 17 WHERE id = 'mail_ingest' AND sort_order = 16").run();
+    },
   ];
 
   if (currentVersion < migrations.length) {

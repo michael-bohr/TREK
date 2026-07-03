@@ -213,7 +213,7 @@ export class MailIngestService {
         counts[status]++;
       } catch (err) {
         counts.errored++;
-        this.log(source.id, msg.messageId, 'error', null, null, err instanceof Error ? err.message : String(err));
+        this.log(source.id, msg, 'error', null, null, err instanceof Error ? err.message : String(err));
         console.error(`[mail-ingest] message ${msg.messageId} failed:`, err instanceof Error ? err.message : err);
       }
     }
@@ -238,7 +238,7 @@ export class MailIngestService {
     const { items } = await this.bookingImport.preview([file], EXTRACT_MODE, source.user_id);
 
     if (items.length === 0) {
-      this.log(source.id, msg.messageId, 'skipped', null, null);
+      this.log(source.id, msg, 'skipped', null, null);
       return 'skipped';
     }
 
@@ -247,7 +247,7 @@ export class MailIngestService {
     // Genuinely nothing to persist yet: no usable dates, or the trip can't be
     // determined (0 or >1 candidates). Everything else has a known trip.
     if (resolution.action === 'ambiguous') {
-      this.log(source.id, msg.messageId, 'pending', null, null, resolution.reason);
+      this.log(source.id, msg, 'pending', null, null, resolution.reason);
       this.notify(source.user_id, { status: 'pending', subject: msg.subject, reason: resolution.reason });
       return 'pending';
     }
@@ -278,7 +278,7 @@ export class MailIngestService {
       throw new Error(`confirm() created 0 of ${items.length} reservation(s) — see server logs for the per-item error`);
     }
     const needsReview = items.some((it) => it.needs_review);
-    this.log(source.id, msg.messageId, 'imported', tripId, created.map((r) => r.id));
+    this.log(source.id, msg, 'imported', tripId, created.map((r) => r.id));
     this.notify(source.user_id, { status: 'imported', tripId, count: created.length, subject: msg.subject, needsReview });
     return 'imported';
   }
@@ -307,19 +307,29 @@ export class MailIngestService {
 
   private log(
     sourceId: number,
-    messageId: string,
+    msg: Pick<RawMessage, 'messageId' | 'subject' | 'fromAddress'>,
     status: string,
     tripId: number | null,
     reservationIds: number[] | null,
     error?: string,
   ): void {
     db.prepare(
-      `INSERT INTO mail_ingest_log (source_id, message_id, status, trip_id, created_reservation_ids, error)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO mail_ingest_log (source_id, message_id, status, trip_id, created_reservation_ids, error, subject, from_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (source_id, message_id) DO UPDATE SET
          status = excluded.status, trip_id = excluded.trip_id,
-         created_reservation_ids = excluded.created_reservation_ids, error = excluded.error`,
-    ).run(sourceId, messageId, status, tripId, reservationIds ? JSON.stringify(reservationIds) : null, error ?? null);
+         created_reservation_ids = excluded.created_reservation_ids, error = excluded.error,
+         subject = excluded.subject, from_address = excluded.from_address`,
+    ).run(
+      sourceId,
+      msg.messageId,
+      status,
+      tripId,
+      reservationIds ? JSON.stringify(reservationIds) : null,
+      error ?? null,
+      msg.subject ?? null,
+      msg.fromAddress ?? null,
+    );
   }
 
   private notify(userId: number, payload: Record<string, unknown>): void {
