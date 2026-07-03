@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import type { BookingImportMode } from '@trek/shared';
 import { db } from '../../db/database';
 import { encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
-import { createTrip } from '../../services/tripService';
+import { createTrip, generateDays } from '../../services/tripService';
+import { resyncReservationDays } from '../../services/reservationService';
 import { BookingImportService } from '../booking-import/booking-import.service';
 import { ImapProvider, type RawMessage } from './imap.provider';
 import { isBookingCandidate } from './candidate-filter';
-import { resolveMessage, type ResolverTrip } from './trip-resolver';
+import { dedupeItems, messageSpan, resolveMessage, type DateSpan, type ResolverTrip } from './trip-resolver';
 
 /** Extraction mode for the auto path: kitinerary first, LLM only on what it
  *  can't read (degrades to kitinerary-only when no LLM is configured). */
@@ -273,7 +274,9 @@ export class MailIngestService {
     }
 
     const file = { buffer: msg.eml, originalname: 'message.eml' } as unknown as Express.Multer.File;
-    const { items } = await this.bookingImport.preview([file], EXTRACT_MODE, source.user_id);
+    const { items: rawItems } = await this.bookingImport.preview([file], EXTRACT_MODE, source.user_id);
+    // A multi-passenger booking parses as one reservation per traveler — import one.
+    const items = dedupeItems(rawItems);
 
     if (items.length === 0) {
       this.log(source.id, msg, 'skipped', null, null);
@@ -305,6 +308,13 @@ export class MailIngestService {
       trips.push({ id: tripId, start_date: resolution.span.start, end_date: resolution.span.end });
     } else {
       tripId = resolution.tripId;
+      // Bookings trickle in as they're made — a late-arriving one that reaches
+      // past the trip's current edge (within the overlap buffer) stretches the
+      // trip instead of hanging off it. Done BEFORE confirm() so day rows exist
+      // for the new dates when it anchors the reservation.
+      const span = messageSpan(items);
+      const trip = trips.find((t) => t.id === tripId);
+      if (span && trip) this.extendTripSpan(trip, span);
     }
 
     // Persist unconditionally, same as AirTrail's unattended sync: needs_review
@@ -330,6 +340,23 @@ export class MailIngestService {
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  /** Widen a trip's dates to cover an attached booking that reaches past its
+   *  current edge. Same recipe as updateTrip (#1288): re-generate the day grid,
+   *  then re-anchor dated bookings so existing content doesn't shift with the
+   *  positional re-dating. Deliberately NOT updateTrip itself — that also
+   *  shifts the owner's vacay entries, which is wrong for a pure extension.
+   *  Mutates the passed ResolverTrip so later messages in the batch see it. */
+  private extendTripSpan(trip: ResolverTrip, span: DateSpan): void {
+    const newStart = trip.start_date && trip.start_date <= span.start ? trip.start_date : span.start;
+    const newEnd = trip.end_date && trip.end_date >= span.end ? trip.end_date : span.end;
+    if (newStart === trip.start_date && newEnd === trip.end_date) return;
+    db.prepare('UPDATE trips SET start_date = ?, end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newStart, newEnd, trip.id);
+    generateDays(trip.id, newStart, newEnd);
+    resyncReservationDays(trip.id);
+    trip.start_date = newStart;
+    trip.end_date = newEnd;
+  }
 
   private userTrips(userId: number): ResolverTrip[] {
     return db

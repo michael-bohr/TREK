@@ -12,6 +12,8 @@
  *   - a pending message is retried (not dedupe-blocked) once it can resolve
  *   - subject/from land on the log and listActivity is scoped to the owner
  *   - import/pending each fire the matching in-app notification event
+ *   - per-passenger duplicate items collapse to one import
+ *   - an attached booking past the trip's edge stretches the trip's dates
  */
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { BookingImportService } from '../../src/nest/booking-import/booking-import.service';
@@ -23,7 +25,8 @@ const { db } = vi.hoisted(() => {
   tmp.exec('PRAGMA journal_mode = WAL');
   tmp.exec(`
     CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-      title TEXT, start_date TEXT, end_date TEXT, is_archived INTEGER NOT NULL DEFAULT 0);
+      title TEXT, start_date TEXT, end_date TEXT, is_archived INTEGER NOT NULL DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);
     CREATE TABLE mail_sources (
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL DEFAULT 'imap',
@@ -52,9 +55,14 @@ vi.mock('../../src/nest/mail-ingest/imap.provider', () => ({
   },
 }));
 
-// createTrip is the only tripService bit we hit on the "create" path.
-const { createTrip } = vi.hoisted(() => ({ createTrip: vi.fn(() => ({ tripId: 999 })) }));
-vi.mock('../../src/services/tripService', () => ({ createTrip }));
+// tripService: createTrip on the "create" path; generateDays when an attach
+// extends the trip span (day-grid work is out of scope for this harness).
+const { createTrip, generateDays } = vi.hoisted(() => ({
+  createTrip: vi.fn(() => ({ tripId: 999 })),
+  generateDays: vi.fn(),
+}));
+vi.mock('../../src/services/tripService', () => ({ createTrip, generateDays }));
+vi.mock('../../src/services/reservationService', () => ({ resyncReservationDays: vi.fn() }));
 
 // In-app notifications: mock send() so the fire-and-forget dynamic import in
 // notify() resolves here (vitest intercepts dynamic imports too) and the tests
@@ -112,6 +120,7 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     preview.mockReset();
     confirm.mockReset().mockResolvedValue({ created: [{ id: 1 }] });
     createTrip.mockClear().mockReturnValue({ tripId: 999 });
+    generateDays.mockClear();
     send.mockClear();
     queued.current = [];
     const src = await svc.addSource(1, { host: 'imap.test', username: 'u@test', password: 'pw' });
@@ -227,6 +236,37 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     expect(second).toMatchObject({ imported: 1, pending: 0 });
     expect(confirm).toHaveBeenCalledWith('7', [carItem], undefined);
     expect(rows()).toEqual([{ status: 'imported', trip_id: 7 }]);
+  });
+
+  it('collapses per-passenger duplicates so a 5-seat e-ticket imports once', async () => {
+    // Schema.org emits one FlightReservation per traveler on the same booking.
+    preview.mockResolvedValue({ items: [flightItem, { ...flightItem }, { ...flightItem }, { ...flightItem }, { ...flightItem }], warnings: [], files: [] });
+    queued.current = [flightMsg];
+
+    const counts = await svc.catchUp(1, sourceId, 30);
+
+    expect(counts).toMatchObject({ imported: 1 });
+    expect(confirm).toHaveBeenCalledWith('999', [flightItem], undefined);
+  });
+
+  it('extends the trip span when an attached booking reaches past its edge', async () => {
+    db.prepare('INSERT INTO trips (id, user_id, start_date, end_date) VALUES (42, 1, ?, ?)').run('2026-07-01', '2026-07-10');
+    // Flight Jul 11 → 12: inside the ±2-day attach buffer, but past end_date.
+    const lateFlight = {
+      ...flightItem,
+      reservation_time: '2026-07-11T10:00',
+      reservation_end_time: '2026-07-12T13:00',
+    };
+    preview.mockResolvedValue({ items: [lateFlight], warnings: [], files: [] });
+    queued.current = [flightMsg];
+
+    const counts = await svc.catchUp(1, sourceId, 30);
+
+    expect(counts).toMatchObject({ imported: 1 });
+    expect(createTrip).not.toHaveBeenCalled();
+    const trip = db.prepare('SELECT start_date, end_date FROM trips WHERE id = 42').get();
+    expect(trip).toEqual({ start_date: '2026-07-01', end_date: '2026-07-12' });
+    expect(generateDays).toHaveBeenCalledWith(42, '2026-07-01', '2026-07-12');
   });
 
   // notify() fires send() behind a dynamic import — flush microtasks/timers so

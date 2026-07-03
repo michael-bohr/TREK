@@ -48,6 +48,29 @@ export function itemSpan(item: BookingImportPreviewItem): DateSpan | null {
   return { start, end: dateOf(item.reservation_end_time) ?? dateOf(toEp) ?? start };
 }
 
+/**
+ * Collapse duplicate items within one message. Schema.org (and kitinerary)
+ * emit one reservation PER PASSENGER, so a 5-seat e-ticket arrives as five
+ * identical flights — a human skips the copies in the manual preview, the
+ * auto path must do it itself. Keyed on what makes a booking distinct; the
+ * first occurrence wins.
+ */
+export function dedupeItems(items: BookingImportPreviewItem[]): BookingImportPreviewItem[] {
+  const seen = new Set<string>();
+  return items.filter((it) => {
+    const key = JSON.stringify([
+      it.type,
+      it.title,
+      it.confirmation_number ?? null,
+      it.reservation_time ?? null,
+      it.reservation_end_time ?? null,
+    ]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Union span across a message's items (earliest start → latest end). */
 export function messageSpan(items: BookingImportPreviewItem[]): DateSpan | null {
   const spans = items.map(itemSpan).filter((s): s is DateSpan => !!s);

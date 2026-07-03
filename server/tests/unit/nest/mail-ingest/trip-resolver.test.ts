@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { itemSpan, messageSpan, resolveMessage, type ResolverTrip } from '../../../../src/nest/mail-ingest/trip-resolver';
+import { dedupeItems, itemSpan, messageSpan, resolveMessage, type ResolverTrip } from '../../../../src/nest/mail-ingest/trip-resolver';
 import type { ParsedBookingItem } from '../../../../src/nest/booking-import/kitinerary.types';
 
 const flight = (over: Partial<ParsedBookingItem> = {}): ParsedBookingItem => ({
@@ -81,5 +81,22 @@ describe('trip-resolver: resolveMessage', () => {
     // trip starts 2026-07-05; flight on 2026-07-04 is within the default ±2-day buffer
     const res = resolveMessage([flight()], [trip(7, '2026-07-05', '2026-07-12')]);
     expect(res).toEqual({ action: 'attach', tripId: 7 });
+  });
+});
+
+describe('trip-resolver: dedupeItems', () => {
+  it('collapses per-passenger copies of the same booking to one', () => {
+    const seat = () => flight({ confirmation_number: 'EL7AGE' });
+    expect(dedupeItems([seat(), seat(), seat(), seat(), seat()])).toHaveLength(1);
+  });
+
+  it('keeps items that differ in confirmation, time, or type', () => {
+    const items = [
+      flight({ confirmation_number: 'AAA111' }),
+      flight({ confirmation_number: 'BBB222' }), // different booking, same flight
+      flight({ confirmation_number: 'AAA111', reservation_time: '2026-07-05T10:00' }), // different leg
+      hotel(),
+    ];
+    expect(dedupeItems(items)).toHaveLength(4);
   });
 });
