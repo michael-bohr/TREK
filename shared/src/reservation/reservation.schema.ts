@@ -151,6 +151,9 @@ const bookingImportEndpointSchema = z.object({
   timezone: z.string().nullable(),
   local_time: z.string().nullable(),
   local_date: z.string().nullable(),
+  // Geocode fallback for confirm() when the endpoint name alone doesn't
+  // resolve; transient — reservation_endpoints has no address column.
+  address: z.string().nullable().optional(),
 });
 
 const bookingImportVenueSchema = z.object({

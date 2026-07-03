@@ -185,18 +185,24 @@ export class BookingImportService {
 
         // Geocode transport endpoints (stations/stops/terminals/rental desks) that
         // arrived without coords, so the route draws and map pins appear. The LLM
-        // and kitinerary rarely supply geo for non-airport endpoints.
+        // and kitinerary rarely supply geo for non-airport endpoints. The address
+        // is the fallback query: booking emails often carry a mangled venue name
+        // ("Jacksonville Intl Apo") next to a perfectly geocodable street address.
         if (Array.isArray(reservationData.endpoints)) {
           for (const ep of reservationData.endpoints) {
             if ((ep.lat == null || ep.lng == null) && ep.name) {
-              try {
-                const hit = (await searchNominatim(ep.name))[0];
-                if (hit?.lat != null && hit?.lng != null) {
-                  ep.lat = hit.lat;
-                  ep.lng = hit.lng;
+              const queries = [ep.name, ep.address].filter((q): q is string => !!q);
+              for (const q of queries) {
+                try {
+                  const hit = (await searchNominatim(q))[0];
+                  if (hit?.lat != null && hit?.lng != null) {
+                    ep.lat = hit.lat;
+                    ep.lng = hit.lng;
+                    break;
+                  }
+                } catch {
+                  // geocoding failure is non-fatal
                 }
-              } catch {
-                // geocoding failure is non-fatal
               }
             }
           }

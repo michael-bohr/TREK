@@ -297,8 +297,8 @@ function mapRentalCar(r: KiReservation, source: ParsedBookingItem['source']): Pa
   const { date: puDate, time: puTime } = splitIso(r.pickupTime);
   const { date: doDate, time: doTime } = splitIso(r.dropoffTime);
   const endpoints: ParsedEndpoint[] = [];
-  if (pickup?.name) endpoints.push({ role: 'from', sequence: 0, name: pickup.name, code: null, lat: pc?.lat ?? null, lng: pc?.lng ?? null, timezone: null, local_time: puTime, local_date: puDate });
-  if (dropoff?.name) endpoints.push({ role: 'to', sequence: 1, name: dropoff.name, code: null, lat: drc?.lat ?? null, lng: drc?.lng ?? null, timezone: null, local_time: doTime, local_date: doDate });
+  if (pickup?.name) endpoints.push({ role: 'from', sequence: 0, name: pickup.name, code: null, lat: pc?.lat ?? null, lng: pc?.lng ?? null, timezone: null, local_time: puTime, local_date: puDate, address: formatAddress(pickup.address) });
+  if (dropoff?.name) endpoints.push({ role: 'to', sequence: 1, name: dropoff.name, code: null, lat: drc?.lat ?? null, lng: drc?.lng ?? null, timezone: null, local_time: doTime, local_date: doDate, address: formatAddress(dropoff.address) });
 
   return {
     type: 'car',

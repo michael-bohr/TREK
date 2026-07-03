@@ -118,4 +118,31 @@ describe('BookingImportService.confirm — venue place dedupe', () => {
     expect(createPlace).toHaveBeenCalledWith('1', expect.objectContaining({ name: 'Sushi Saito' }));
     expect(createReservation).toHaveBeenCalledWith('1', expect.objectContaining({ place_id: 77 }));
   });
+
+  it('geocodes an endpoint by its address when the name alone fails', async () => {
+    // The real-world case: booking emails carry a mangled venue name next to a
+    // geocodable street address; without the fallback the endpoint is dropped.
+    vi.mocked(createReservation).mockReturnValue({ reservation: { id: 11 }, accommodationCreated: false } as any);
+    vi.mocked(searchNominatim).mockImplementation(async (q: string) =>
+      q.includes('Yankee Clipper') ? ([{ lat: 30.49, lng: -81.68 }] as any) : [],
+    );
+    const { svc } = make({ kit: true });
+
+    const carItem = {
+      type: 'car',
+      title: 'Budget — Fullsize SUV',
+      source: { fileName: 'a.eml', index: 0 },
+      endpoints: [
+        { role: 'to', sequence: 1, name: 'Jacksonville Intl Apo', code: null, lat: null, lng: null, timezone: null, local_time: '16:00', local_date: '2026-11-30', address: '2400 Yankee Clipper Dr, Jacksonville, FL' },
+      ],
+    } as any;
+
+    await svc.confirm('1', [carItem], undefined);
+
+    expect(searchNominatim).toHaveBeenCalledWith('Jacksonville Intl Apo');
+    expect(searchNominatim).toHaveBeenCalledWith('2400 Yankee Clipper Dr, Jacksonville, FL');
+    const passed = vi.mocked(createReservation).mock.calls[0][1] as any;
+    expect(passed.endpoints).toHaveLength(1);
+    expect(passed.endpoints[0]).toMatchObject({ name: 'Jacksonville Intl Apo', lat: 30.49, lng: -81.68 });
+  });
 });

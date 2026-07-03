@@ -156,6 +156,9 @@ export interface ParsedEndpoint {
   timezone: string | null;
   local_time: string | null;
   local_date: string | null;
+  /** Geocode fallback when the name alone doesn't resolve (e.g. a rental desk's
+   *  truncated "Jacksonville Intl Apo") — not persisted on the endpoint row. */
+  address?: string | null;
 }
 
 /** Venue used to auto-create a places row on confirm */
