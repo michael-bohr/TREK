@@ -10,6 +10,8 @@
  *   - a needs_review (LLM-derived) item still gets persisted, not stuck pending
  *   - an item with no usable dates stays pending, since no trip can be picked
  *   - a pending message is retried (not dedupe-blocked) once it can resolve
+ *   - subject/from land on the log and listActivity is scoped to the owner
+ *   - import/pending each fire the matching in-app notification event
  */
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { BookingImportService } from '../../src/nest/booking-import/booking-import.service';
@@ -225,5 +227,69 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     expect(second).toMatchObject({ imported: 1, pending: 0 });
     expect(confirm).toHaveBeenCalledWith('7', [carItem], undefined);
     expect(rows()).toEqual([{ status: 'imported', trip_id: 7 }]);
+  });
+
+  // notify() fires send() behind a dynamic import — flush microtasks/timers so
+  // the fire-and-forget call has landed before asserting on the mock.
+  const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  it('records subject/from on the log and exposes them via listActivity, owner-scoped', async () => {
+    db.prepare("INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (42, 1, 'Japan', ?, ?)").run('2026-07-01', '2026-07-10');
+    preview.mockResolvedValue({ items: [flightItem], warnings: [], files: [] });
+    queued.current = [flightMsg];
+    await svc.catchUp(1, sourceId, 30);
+
+    const logRow = db.prepare('SELECT subject, from_address FROM mail_ingest_log').get();
+    expect(logRow).toEqual({ subject: 'Your flight AA100 confirmation', from_address: 'noreply@aa.com' });
+
+    const mine = svc.listActivity(1, 20);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({
+      status: 'imported',
+      subject: 'Your flight AA100 confirmation',
+      from_address: 'noreply@aa.com',
+      trip_id: 42,
+      trip_title: 'Japan',
+      reservation_count: 1,
+      source_username: 'u@test',
+    });
+
+    // Another user sees none of it.
+    await svc.addSource(2, { host: 'imap.test', username: 'other@test', password: 'pw' });
+    expect(svc.listActivity(2, 20)).toEqual([]);
+  });
+
+  it('sends an in-app notification on import (→ trip) and on pending (→ review)', async () => {
+    db.prepare("INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (42, 1, 'Japan', ?, ?)").run('2026-07-01', '2026-07-10');
+    preview.mockResolvedValue({ items: [flightItem], warnings: [], files: [] });
+    queued.current = [flightMsg];
+    await svc.catchUp(1, sourceId, 30);
+    await flush();
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'mail_ingest_imported',
+        scope: 'user',
+        targetId: 1,
+        params: expect.objectContaining({ tripId: '42', trip: 'Japan', subject: 'Your flight AA100 confirmation', count: '1' }),
+      }),
+    );
+
+    // A second, undated message defers → pending notification with the reason.
+    send.mockClear();
+    const undated = { ...flightItem, reservation_time: undefined, reservation_end_time: undefined, endpoints: [] };
+    preview.mockResolvedValue({ items: [undated], warnings: [], files: [] });
+    queued.current = [{ ...flightMsg, uid: 12, messageId: '<flight-2@test>' }];
+    await svc.catchUp(1, sourceId, 30);
+    await flush();
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'mail_ingest_pending',
+        scope: 'user',
+        targetId: 1,
+        params: expect.objectContaining({ reason: 'no usable dates' }),
+      }),
+    );
   });
 });
