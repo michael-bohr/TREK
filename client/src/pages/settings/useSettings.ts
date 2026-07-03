@@ -18,7 +18,8 @@ export function useSettings() {
   const mcpEnabled = addonEnabled('mcp')
   const airtrailEnabled = addonEnabled('airtrail')
   const llmEnabled = addonEnabled('llm_parsing')
-  const hasIntegrations = memoriesEnabled || mcpEnabled || airtrailEnabled || llmEnabled
+  const mailIngestEnabled = addonEnabled('mail_ingest')
+  const hasIntegrations = memoriesEnabled || mcpEnabled || airtrailEnabled || llmEnabled || mailIngestEnabled
 
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('display')
@@ -28,11 +29,15 @@ export function useSettings() {
     authApi.getAppConfig?.().then(c => setAppVersion(c?.version)).catch(() => {})
   }, [])
 
-  // Auto-switch to account tab when MFA is required
+  // Auto-switch to account tab when MFA is required, else honor a ?tab= deep
+  // link (e.g. a mail-ingest notification pointing at the integrations tab).
   useEffect(() => {
     if (searchParams.get('mfa') === 'required') {
       setActiveTab('account')
+      return
     }
+    const tab = searchParams.get('tab')
+    if (tab) setActiveTab(tab)
   }, [searchParams])
 
   return { hasIntegrations, appVersion, activeTab, setActiveTab }

@@ -78,6 +78,8 @@ const settings: TranslationStrings = {
   'settings.notifyPhotosShared': 'Shared photos (Immich)',
   'settings.notifyCollabMessage': 'Chat messages (Collab)',
   'settings.notifyPackingTagged': 'Packing list: assignments',
+  'settings.notifyMailIngestImported': 'Mail ingest: booking imported',
+  'settings.notifyMailIngestPending': 'Mail ingest: booking needs review',
   'settings.notifyWebhook': 'Webhook notifications',
   'settings.notifyVersionAvailable': 'New version available',
   'settings.notificationPreferences.email': 'Email',

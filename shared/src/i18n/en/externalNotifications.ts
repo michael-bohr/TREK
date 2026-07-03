@@ -44,6 +44,16 @@ const en: NotificationLocale = {
       title: `Packing: ${p.category}`,
       body: `${p.actor} assigned you to the "${p.category}" packing category in "${p.trip}".`,
     }),
+    // In-app-only events; these strings are a defensive fallback in case an
+    // external channel ever renders them.
+    mail_ingest_imported: (p) => ({
+      title: 'Booking imported',
+      body: `"${p.subject}" was filed to "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Booking needs review',
+      body: `"${p.subject}" couldn't be matched to a trip (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'New TREK version available',
       body: `TREK ${p.version} is now available. Visit the admin panel to update.`,

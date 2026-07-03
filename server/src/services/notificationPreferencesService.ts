@@ -16,6 +16,8 @@ export type NotifEventType =
   | 'photos_shared'
   | 'collab_message'
   | 'packing_tagged'
+  | 'mail_ingest_imported'
+  | 'mail_ingest_pending'
   | 'version_available'
   | 'synology_session_cleared';
 
@@ -38,6 +40,10 @@ const IMPLEMENTED_COMBOS: Record<NotifEventType, NotifChannel[]> = {
   photos_shared:     ['inapp', 'email', 'webhook', 'ntfy'],
   collab_message:    ['inapp', 'email', 'webhook', 'ntfy'],
   packing_tagged:    ['inapp', 'email', 'webhook', 'ntfy'],
+  // Per-booking events fire on every scanned email that imports/defers — in-app
+  // only, so a busy inbox never turns into an email flood.
+  mail_ingest_imported: ['inapp'],
+  mail_ingest_pending:  ['inapp'],
   version_available: ['inapp', 'email', 'webhook', 'ntfy'],
   synology_session_cleared: ['inapp'],
 };

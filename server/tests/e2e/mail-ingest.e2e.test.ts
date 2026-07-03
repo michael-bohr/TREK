@@ -21,7 +21,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec('PRAGMA journal_mode = WAL');
   tmp.exec(`
     CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-      start_date TEXT, end_date TEXT, is_archived INTEGER NOT NULL DEFAULT 0);
+      title TEXT, start_date TEXT, end_date TEXT, is_archived INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);
     CREATE TABLE mail_sources (
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL DEFAULT 'imap',
@@ -54,8 +54,11 @@ vi.mock('../../src/nest/mail-ingest/imap.provider', () => ({
 const { createTrip } = vi.hoisted(() => ({ createTrip: vi.fn(() => ({ tripId: 999 })) }));
 vi.mock('../../src/services/tripService', () => ({ createTrip }));
 
-// No websocket in tests.
-vi.mock('../../src/websocket', () => ({ broadcastToUser: () => {} }));
+// In-app notifications: mock send() so the fire-and-forget dynamic import in
+// notify() resolves here (vitest intercepts dynamic imports too) and the tests
+// can assert what was sent.
+const { send } = vi.hoisted(() => ({ send: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../src/services/notificationService', () => ({ send }));
 
 // Stub the booking-import service (we inject a mock) so importing the ingest
 // service doesn't pull the real one's chain (adminService → mcp SDK) into vitest.
@@ -107,6 +110,7 @@ describe('Mail-ingest e2e (fake provider + temp SQLite)', () => {
     preview.mockReset();
     confirm.mockReset().mockResolvedValue({ created: [{ id: 1 }] });
     createTrip.mockClear().mockReturnValue({ tripId: 999 });
+    send.mockClear();
     queued.current = [];
     const src = await svc.addSource(1, { host: 'imap.test', username: 'u@test', password: 'pw' });
     sourceId = src.id;

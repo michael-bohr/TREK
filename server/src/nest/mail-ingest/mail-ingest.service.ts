@@ -3,7 +3,6 @@ import type { BookingImportMode } from '@trek/shared';
 import { db } from '../../db/database';
 import { encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
 import { createTrip } from '../../services/tripService';
-import { broadcastToUser } from '../../websocket';
 import { BookingImportService } from '../booking-import/booking-import.service';
 import { ImapProvider, type RawMessage } from './imap.provider';
 import { isBookingCandidate } from './candidate-filter';
@@ -248,7 +247,10 @@ export class MailIngestService {
     // determined (0 or >1 candidates). Everything else has a known trip.
     if (resolution.action === 'ambiguous') {
       this.log(source.id, msg, 'pending', null, null, resolution.reason);
-      this.notify(source.user_id, { status: 'pending', subject: msg.subject, reason: resolution.reason });
+      this.notify(source.user_id, 'mail_ingest_pending', {
+        subject: msg.subject ?? '(no subject)',
+        reason: resolution.reason,
+      });
       return 'pending';
     }
 
@@ -277,9 +279,14 @@ export class MailIngestService {
       // of falsely claiming 'imported' with an empty result.
       throw new Error(`confirm() created 0 of ${items.length} reservation(s) — see server logs for the per-item error`);
     }
-    const needsReview = items.some((it) => it.needs_review);
     this.log(source.id, msg, 'imported', tripId, created.map((r) => r.id));
-    this.notify(source.user_id, { status: 'imported', tripId, count: created.length, subject: msg.subject, needsReview });
+    const trip = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
+    this.notify(source.user_id, 'mail_ingest_imported', {
+      subject: msg.subject ?? '(no subject)',
+      trip: trip?.title || 'Untitled',
+      tripId: String(tripId),
+      count: String(created.length),
+    });
     return 'imported';
   }
 
@@ -332,11 +339,11 @@ export class MailIngestService {
     );
   }
 
-  private notify(userId: number, payload: Record<string, unknown>): void {
-    try {
-      broadcastToUser(userId, { type: 'mail-ingest', ...payload });
-    } catch {
-      /* best-effort */
-    }
+  /** Fire-and-forget in-app notification (bell), mirroring the codebase's
+   *  dynamic-import pattern. Failures never break ingestion. */
+  private notify(userId: number, event: 'mail_ingest_imported' | 'mail_ingest_pending', params: Record<string, string>): void {
+    import('../../services/notificationService')
+      .then(({ send }) => send({ event, actorId: null, scope: 'user', targetId: userId, params }).catch(() => {}))
+      .catch(() => {});
   }
 }

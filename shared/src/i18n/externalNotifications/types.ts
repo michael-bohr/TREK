@@ -21,7 +21,7 @@ export interface PasswordResetStrings {
   ignore: string;
 }
 
-export type NotificationEventKey =
+export type RequiredNotificationEventKey =
   | 'trip_invite'
   | 'booking_change'
   | 'trip_reminder'
@@ -34,8 +34,15 @@ export type NotificationEventKey =
   | 'version_available'
   | 'synology_session_cleared';
 
+/** Events a locale MAY translate; missing entries fall back to English at the
+ *  call site (getEventText). Lets new in-app-only events ship with an English
+ *  string without touching every locale file. */
+export type OptionalNotificationEventKey = 'mail_ingest_imported' | 'mail_ingest_pending';
+
+export type NotificationEventKey = RequiredNotificationEventKey | OptionalNotificationEventKey;
+
 export interface NotificationLocale {
   email: EmailStrings;
-  events: Record<NotificationEventKey, EventTextFn>;
+  events: Record<RequiredNotificationEventKey, EventTextFn> & Partial<Record<OptionalNotificationEventKey, EventTextFn>>;
   passwordReset: PasswordResetStrings;
 }

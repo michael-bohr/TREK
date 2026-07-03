@@ -124,6 +124,20 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.view_packing',
     navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
   },
+  mail_ingest_imported: {
+    inAppType: 'navigate',
+    titleKey: 'notif.mail_ingest_imported.title',
+    textKey: 'notif.mail_ingest_imported.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  mail_ingest_pending: {
+    inAppType: 'navigate',
+    titleKey: 'notif.mail_ingest_pending.title',
+    textKey: 'notif.mail_ingest_pending.text',
+    navigateTextKey: 'notif.action.view',
+    navigateTarget: () => '/settings?tab=integrations',
+  },
   version_available: {
     inAppType: 'navigate',
     titleKey: 'notif.version_available.title',

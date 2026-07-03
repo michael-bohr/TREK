@@ -30,6 +30,8 @@ const EVENT_LABEL_KEYS: Record<string, string> = {
   photos_shared: 'settings.notifyPhotosShared',
   collab_message: 'settings.notifyCollabMessage',
   packing_tagged: 'settings.notifyPackingTagged',
+  mail_ingest_imported: 'settings.notifyMailIngestImported',
+  mail_ingest_pending: 'settings.notifyMailIngestPending',
   version_available: 'settings.notifyVersionAvailable',
 }
 
