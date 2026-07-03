@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink, ChevronDown, ChevronRight, History } from 'lucide-react'
+import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
@@ -77,6 +78,7 @@ function fmtChecked(ts: string): string {
 }
 
 export default function MailSourceSection(): React.ReactElement {
+  const { t } = useTranslation()
   const toast = useToast()
   const [sources, setSources] = useState<MailSource[]>([])
   const [host, setHost] = useState('')
@@ -129,10 +131,10 @@ export default function MailSourceSection(): React.ReactElement {
     setTesting(true)
     try {
       const r = await api<{ ok: boolean; error?: string }>('/sources/test', { method: 'POST', body: JSON.stringify(body()) })
-      if (r.ok) toast.success('Connection successful')
-      else toast.error(`Connection failed: ${r.error ?? 'unknown error'}`)
+      if (r.ok) toast.success(t('settings.mailIngest.toast.testOk'))
+      else toast.error(t('settings.mailIngest.toast.testFailed', { error: r.error ?? 'unknown error' }))
     } catch (e) {
-      toast.error(`Connection failed: ${(e as Error).message}`)
+      toast.error(t('settings.mailIngest.toast.testFailed', { error: (e as Error).message }))
     } finally {
       setTesting(false)
     }
@@ -147,7 +149,7 @@ export default function MailSourceSection(): React.ReactElement {
       setPassword('')
       setPort('993')
       setFolder('INBOX')
-      toast.success('Mailbox connected')
+      toast.success(t('settings.mailIngest.toast.connected'))
       load()
     } catch (e) {
       toast.error((e as Error).message)
@@ -178,7 +180,7 @@ export default function MailSourceSection(): React.ReactElement {
     setCatchingUp(s.id)
     try {
       const r = await api<{ imported: number; pending: number; skipped: number }>(`/sources/${s.id}/catch-up?days=30`, { method: 'POST' })
-      toast.success(`Caught up — ${r.imported} added, ${r.pending} to review, ${r.skipped} skipped`)
+      toast.success(t('settings.mailIngest.toast.caughtUp', { imported: r.imported, pending: r.pending, skipped: r.skipped }))
       load()
       if (activity !== null) loadActivity()
     } catch (e) {
@@ -191,13 +193,9 @@ export default function MailSourceSection(): React.ReactElement {
   const canSubmit = host.trim() && username.trim() && password
 
   return (
-    <Section title="Mail ingest" icon={Mail}>
+    <Section title={t('settings.mailIngest.title')} icon={Mail}>
       <div className="space-y-4">
-        <p className="text-xs text-content-secondary">
-          Connect a mailbox and TREK scans it for flight &amp; hotel confirmations, filing each onto the matching trip
-          (creating the trip if none exists). It reads your inbox to find bookings — set a folder below to limit it to,
-          e.g., a dedicated <code>TREK</code> folder.
-        </p>
+        <p className="text-xs text-content-secondary">{t('settings.mailIngest.hint')}</p>
 
         {/* Connected sources */}
         {sources.length > 0 && (
@@ -209,20 +207,22 @@ export default function MailSourceSection(): React.ReactElement {
                   <div className="text-sm text-content truncate">{s.username}</div>
                   <div className="text-xs text-content-faint truncate">
                     {s.host}:{s.port} · {s.folder}
-                    {s.last_polled_at ? ` · last checked ${fmtChecked(s.last_polled_at)}` : ' · not checked yet'}
+                    {s.last_polled_at
+                      ? ` · ${t('settings.mailIngest.lastChecked', { time: fmtChecked(s.last_polled_at) })}`
+                      : ` · ${t('settings.mailIngest.notCheckedYet')}`}
                   </div>
                 </div>
                 <button
                   onClick={() => catchUp(s)}
                   disabled={catchingUp === s.id}
-                  title="Scan the last 30 days now"
+                  title={t('settings.mailIngest.catchUpHint')}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-edge text-content-secondary hover:bg-surface disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${catchingUp === s.id ? 'animate-spin' : ''}`} />
-                  Catch up
+                  {t('settings.mailIngest.catchUp')}
                 </button>
                 <ToggleSwitch on={s.enabled} onToggle={() => toggle(s)} />
-                <button onClick={() => remove(s)} title="Remove" className="p-1.5 rounded-lg text-content-faint hover:text-red-500 hover:bg-surface">
+                <button onClick={() => remove(s)} title={t('settings.mailIngest.remove')} className="p-1.5 rounded-lg text-content-faint hover:text-red-500 hover:bg-surface">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -240,7 +240,7 @@ export default function MailSourceSection(): React.ReactElement {
               className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary"
             >
               <span className="flex items-center gap-1.5 text-sm font-medium text-content-secondary">
-                <History className="w-4 h-4" /> Recent activity
+                <History className="w-4 h-4" /> {t('settings.mailIngest.recentActivity')}
               </span>
               {activityOpen ? (
                 <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
@@ -251,18 +251,18 @@ export default function MailSourceSection(): React.ReactElement {
             {activityOpen && (
               <div className="border-t border-edge divide-y divide-edge max-h-80 overflow-y-auto">
                 {activity === null ? (
-                  <p className="p-3 text-xs text-content-faint">Loading…</p>
+                  <p className="p-3 text-xs text-content-faint">{t('common.loading')}</p>
                 ) : activity.length === 0 ? (
-                  <p className="p-3 text-xs text-content-faint">Nothing processed yet — run a catch-up or wait for the next scheduled check.</p>
+                  <p className="p-3 text-xs text-content-faint">{t('settings.mailIngest.activityEmpty')}</p>
                 ) : (
                   activity.map((a) => (
                     <div key={a.id} className="px-3 py-2 flex items-start gap-2">
                       <span className={`shrink-0 mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded ${STATUS_PILL[a.status] ?? STATUS_PILL.skipped}`}>
-                        {a.status}
+                        {a.status in STATUS_PILL ? t(`settings.mailIngest.status.${a.status}`) : a.status}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs text-content truncate" title={a.from_address ?? undefined}>
-                          {a.subject || '(no subject)'}
+                          {a.subject || t('settings.mailIngest.noSubject')}
                         </div>
                         <div className="text-[11px] text-content-faint truncate">
                           {fmtChecked(a.created_at)}
@@ -272,7 +272,7 @@ export default function MailSourceSection(): React.ReactElement {
                               <Link to={`/trips/${a.trip_id}`} className="underline hover:text-content">
                                 {a.trip_title}
                               </Link>
-                              {a.reservation_count > 0 && ` (${a.reservation_count} added)`}
+                              {a.reservation_count > 0 && ` ${t('settings.mailIngest.addedCount', { count: a.reservation_count })}`}
                             </>
                           )}
                           {a.error && ` · ${a.error}`}
@@ -290,29 +290,29 @@ export default function MailSourceSection(): React.ReactElement {
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1.5 text-content-secondary">IMAP host</label>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.host')}</label>
               <input type="text" autoComplete="off" value={host} onChange={(e) => setHost(e.target.value)} placeholder="imap.gmail.com" className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-content-secondary">Port</label>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.port')}</label>
               <input type="text" autoComplete="off" value={port} onChange={(e) => setPort(e.target.value)} placeholder="993" className={inputCls} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-content-secondary">Username</label>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.username')}</label>
               <input type="text" autoComplete="off" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-content-secondary">Password (app password)</label>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.password')}</label>
               <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={inputCls} />
-              <p className="mt-1 text-xs text-content-faint">Use an app password, not your login password.</p>
+              <p className="mt-1 text-xs text-content-faint">{t('settings.mailIngest.passwordHint')}</p>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5 text-content-secondary">Folder</label>
+            <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.folder')}</label>
             <input type="text" autoComplete="off" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="INBOX" className={inputCls} />
-            <p className="mt-1 text-xs text-content-faint">Default <code>INBOX</code>. Point at a dedicated folder to keep TREK out of the rest of your mail.</p>
+            <p className="mt-1 text-xs text-content-faint">{t('settings.mailIngest.folderHint')}</p>
           </div>
 
           {/* App-password help — mirrors the MCP "Client Configuration" collapsible. */}
@@ -323,7 +323,7 @@ export default function MailSourceSection(): React.ReactElement {
               className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary"
             >
               <span className="flex items-center gap-1.5 text-sm font-medium text-content-secondary">
-                <KeyRound className="w-4 h-4" /> Where do I create an app password?
+                <KeyRound className="w-4 h-4" /> {t('settings.mailIngest.helpTitle')}
               </span>
               {helpOpen ? (
                 <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
@@ -333,10 +333,7 @@ export default function MailSourceSection(): React.ReactElement {
             </button>
             {helpOpen && (
               <div className="p-3 border-t border-edge space-y-2">
-                <p className="text-xs text-content-faint">
-                  Most providers block plain IMAP logins — generate an <strong>app password</strong> and make sure IMAP
-                  is enabled in your mail settings, then paste it above.
-                </p>
+                <p className="text-xs text-content-faint">{t('settings.mailIngest.helpBody')}</p>
                 <div className="flex flex-wrap gap-2">
                   {APP_PASSWORD_LINKS.map((p) => (
                     <a
@@ -360,14 +357,14 @@ export default function MailSourceSection(): React.ReactElement {
               disabled={!canSubmit || testing}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-edge text-content-secondary hover:bg-surface disabled:opacity-50"
             >
-              <Plug className="w-4 h-4" /> {testing ? 'Testing…' : 'Test connection'}
+              <Plug className="w-4 h-4" /> {testing ? t('settings.mailIngest.testing') : t('settings.mailIngest.testConnection')}
             </button>
             <button
               onClick={add}
               disabled={!canSubmit || busy}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" /> {busy ? 'Connecting…' : 'Connect mailbox'}
+              <Save className="w-4 h-4" /> {busy ? t('settings.mailIngest.connecting') : t('settings.mailIngest.connect')}
             </button>
           </div>
         </div>
