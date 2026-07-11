@@ -16,7 +16,7 @@ import dns from 'node:dns';
 import dgram from 'node:dgram';
 import { createRequire } from 'node:module';
 import { createPluginContext, definePlugin, PLUGIN_API_VERSION, type ChildTransport, type PluginContext, type PluginDefinition } from './plugin-sdk';
-import { isBlockedIp, makeHostAllow, classifyConnect, dgramSendTarget, dgramConnectTarget } from './egress-policy';
+import { isBlockedIp, makeHostAllow, classifyConnect, unwrapConnectArgs, dgramSendTarget, dgramConnectTarget } from './egress-policy';
 import type { Envelope, RpcError } from '../protocol/envelope';
 
 const pluginId = process.argv[2] || process.env.TREK_PLUGIN_ID || 'unknown';
@@ -434,7 +434,11 @@ function installEgressGuard(egress: string[]): void {
 
   const proto = net.Socket.prototype as unknown as { connect: (...a: unknown[]) => unknown };
   const realConnect = proto.connect;
-  proto.connect = function (this: unknown, ...args: unknown[]): unknown {
+  proto.connect = function (this: unknown, ...rawArgs: unknown[]): unknown {
+    // Node hands the pre-normalised [options, cb] array in as a single argument on the
+    // net.connect() path (undici uses it for plain HTTP). Work from the unwrapped list,
+    // or the rebuild below spreads an array into {0: options, 1: cb} and Node rejects it.
+    const args = unwrapConnectArgs(rawArgs);
     const target = classifyConnect(args, (s) => net.isIP(s) !== 0);
     if (target.kind === 'local') {
       // A unix-socket / named-pipe connect is a host-local pivot — a malicious plugin
@@ -443,7 +447,7 @@ function installEgressGuard(egress: string[]): void {
       // Refuse it under the SAME policy: blocked by default, allowed only when the
       // operator explicitly opted into private egress.
       if (blockPrivate) throw new Error(`egress: connecting to a local socket/pipe (${target.host}) is not allowed`);
-      return realConnect.apply(this, args);
+      return realConnect.apply(this, rawArgs);
     }
     if (!allowed(target.host)) {
       throw new Error(`egress: ${target.host} is not in the plugin's declared hosts`);
@@ -452,7 +456,7 @@ function installEgressGuard(egress: string[]): void {
       if (blockPrivate && isBlockedIp(target.host)) {
         throw new Error(`egress: ${target.host} is a blocked address`);
       }
-      return realConnect.apply(this, args);
+      return realConnect.apply(this, rawArgs);
     }
     // Hostname: inject the resolving guard. Preserve an existing lookup by
     // wrapping the args' options object.

@@ -469,6 +469,14 @@ export class PluginSupervisor {
         TZ: process.env.TZ ?? '',
         PATH: process.env.PATH ?? '',
         TREK_PLUGIN_ID: sup.id,
+        // The egress guard that reads this runs INSIDE the child, and the child's env
+        // is scrubbed — so without forwarding it here the documented opt-out is dead
+        // code and a plugin can never reach a self-hoster's LAN service (a Gotify, an
+        // ntfy, an Ollama) no matter what the admin sets. Forwarded only when set, so
+        // the default stays the secure block-private policy.
+        ...(process.env.TREK_PLUGIN_ALLOW_PRIVATE_EGRESS
+          ? { TREK_PLUGIN_ALLOW_PRIVATE_EGRESS: process.env.TREK_PLUGIN_ALLOW_PRIVATE_EGRESS }
+          : {}),
       },
     });
     sup.child = child;
