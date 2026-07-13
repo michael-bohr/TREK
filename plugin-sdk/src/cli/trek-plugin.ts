@@ -41,6 +41,7 @@ import {
   promptText, promptConfirm, clackLogSink, missingArgs,
 } from './ui.js';
 import { runMenu } from './menu.js';
+import { notifySdkUpdate } from './update-notice.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -159,6 +160,9 @@ The goal: create -> dev -> publish, and never hand-compute sha256/size/commitSha
 or hand-write the registry JSON.`;
 
 async function main(): Promise<void> {
+  // Advisory only (update-notifier): prints from cache on stderr, refreshes in the
+  // background, never blocks. `dev` never returns, so this runs up front.
+  notifySdkUpdate();
   // Before dispatch, so assertKnownFlags never sees `--help` and rejects it as unknown.
   // Help is not an error: it goes to stdout and exits 0.
   if (cmd === 'help' || cmd === '--help' || cmd === '-h' || flags.help) {

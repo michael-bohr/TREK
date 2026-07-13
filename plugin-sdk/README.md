@@ -152,4 +152,33 @@ bin if you install the package):
 - `release [dir] --repo o/n --tag vX [--sign [key]] [--merge f]` — pack → GitHub release → entry, in one go.
 - `publish [dir] --repo o/n --tag vX [--sign [key]] [--no-preflight]` — **the lot**: pack → tag + release → preflight → open the PR.
 
+## Update notice
+
+Both CLIs (`trek-plugin` and `create-trek-plugin`) tell you when a newer SDK has been
+published. This matters more than the usual "you're on an old version" nag: the
+registry entry format, the manifest rules and the permission catalog all move with the
+TREK host, so a stale SDK can `pack` and `submit` an entry that today's registry CI
+rejects.
+
+It is powered by [`update-notifier`](https://github.com/sindresorhus/update-notifier),
+the standard for npm CLIs:
+
+- At most **once every 24 hours**, a detached background process asks
+  `registry.npmjs.org` for this package's `latest` version and caches the answer under
+  `$XDG_CONFIG_HOME/configstore/` (or `~/.config/…`).
+- Your command **never waits for it** — the notice is printed from that cache, so a
+  fresh install learns about an update on a later run.
+- The notice goes to **stderr**, so `pack --json` and `entry` keep piping clean JSON.
+
+The request is an unauthenticated GET for a public package — the same one `npm install`
+makes (npm's servers see your IP, as for any download). TREK has no telemetry, and this
+isn't any. To turn it off:
+
+```bash
+export NO_UPDATE_NOTIFIER=1
+```
+
+It is already silent in CI (any `CI` env var), under `NODE_ENV=test`, and whenever
+stdout isn't a terminal (i.e. when piped or redirected).
+
 The SDK tooling in this repo is MIT. Your plugin is your own code under your own license.

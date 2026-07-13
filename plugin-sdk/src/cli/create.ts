@@ -15,6 +15,7 @@ import {
   PERMISSION_CATALOG,
 } from './ui.js';
 import { KNOWN_ADDONS } from '../manifest.js';
+import { notifySdkUpdate } from './update-notice.js';
 
 /** This package's own version, for the scaffold's devDependency range. */
 function sdkVersionRange(): string {
@@ -491,6 +492,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
 
 // CLI entry
 if (process.argv[1] && process.argv[1].endsWith('create.js')) {
+  notifySdkUpdate();
   const args = process.argv.slice(2);
   const name = args.find((a: string) => !a.startsWith('-'));
   const typeIdx = args.indexOf('--type');
