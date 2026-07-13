@@ -94,6 +94,9 @@ interface Settlement {
   from_user_id: number
   to_user_id: number
   amount: number
+  // The currency the transfer was entered in. Legacy rows predate it (null) and are
+  // read as the display currency, which is what the server assumes for them too.
+  currency?: string | null
   created_at?: string
   from_username?: string
   to_username?: string
@@ -775,18 +778,23 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // A settle-up payment as a ledger row — visually distinct from an expense, with
   // inline edit + undo (reuses deleteSettlement) so it isn't buried in a modal.
   function SettlementRow({ s }: { s: Settlement }) {
+    // Legacy transfers carry no currency and were entered in the display base.
+    const cur = (s.currency || base).toUpperCase()
     return (
       <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
         <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(22,163,74,0.12)', color: '#16a34a' }}><ArrowLeftRight size={21} /></span>
         <div style={{ minWidth: 0 }}>
-          <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, marginBottom: 6 }}>{t('costs.payment')}</div>
+          <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, marginBottom: 6 }}>
+            {t('costs.payment')}
+            {cur !== base && <span className="text-content-faint" style={{ fontWeight: 400, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}> · {fmt(s.amount, cur)} → {fmt(convert(s.amount, cur))}</span>}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }} title={`${personName(s.from_user_id)} → ${personName(s.to_user_id)}`}>
             <Avatar id={s.from_user_id} size={20} /><ArrowRight size={13} className="text-content-faint" /><Avatar id={s.to_user_id} size={20} />
             <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{personName(s.from_user_id)} → {personName(s.to_user_id)}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
-          <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(s.amount)}</div>
+          <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(convert(s.amount, cur))}</div>
           {canEdit && (
             <div className="exp-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
               <button title={t('common.edit')} onClick={() => setEditingSettlement(s)} className="bg-surface-secondary border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer' }}><Pencil size={13} /></button>
@@ -902,9 +910,12 @@ function FlowPills({ ids, lead, Avatar, name }: { ids: number[]; lead: string; A
   )
 }
 
-// Add or edit a settle-up payment (from / to / amount). Reachable inline from the
-// ledger row and from a manual "Add payment" button, so recording "I sent money to
-// X" works the same whether or not there's an outstanding expense behind it.
+// Add or edit a settle-up payment (from / to / amount / currency). Reachable inline
+// from the ledger row and from a manual "Add payment" button, so recording "I sent
+// money to X" works the same whether or not there's an outstanding expense behind it.
+// A transfer can be made in any currency — paying a rouble debt in euros is normal —
+// so it carries its own, defaulting to the display currency. The server freezes its
+// FX rate on write, the same way an expense's is frozen.
 function SettlementModal({ tripId, people, me, editing, currency, onClose, onSaved }: {
   tripId: number; people: TripMember[]; me: number; editing: Settlement | null; currency: string; onClose: () => void; onSaved: () => void
 }) {
@@ -914,6 +925,7 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
   const [fromId, setFromId] = useState<string>(String(editing?.from_user_id ?? me))
   const [toId, setToId] = useState<string>(String(editing?.to_user_id ?? otherDefault))
   const [amount, setAmount] = useState<string>(editing ? String(editing.amount) : '')
+  const [cur, setCur] = useState<string>((editing?.currency || currency).toUpperCase())
   const [saving, setSaving] = useState(false)
 
   const amt = parseFloat(amount) || 0
@@ -923,7 +935,7 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency }
+    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency: cur }
     try {
       if (editing) await budgetApi.updateSettlement(tripId, editing.id, data)
       else await budgetApi.createSettlement(tripId, data)
@@ -931,7 +943,6 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
     } catch { toast.error(t('common.unknownError')) } finally { setSaving(false) }
   }
 
-  const inputCls = 'w-full bg-surface-input border border-edge text-content'
   const labelCls = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[6px]'
 
   return (
@@ -951,10 +962,22 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
           <label className={labelCls}>{t('costs.to')}</label>
           <CustomSelect value={toId} onChange={v => setToId(String(v))} options={opts} style={{ width: '100%' }} />
         </div>
-        <div>
-          <label className={labelCls}>{t('costs.amount')}</label>
-          <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
-            onChange={e => setAmount(e.target.value.replace(',', '.'))} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 'calc(14px * var(--fs-scale-body, 1))', outline: 'none', fontWeight: 600 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <label className={labelCls}>{t('costs.amount')}</label>
+            <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
+              <span className="text-content-faint" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>{SYMBOLS[cur] || (cur + ' ')}</span>
+              <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
+                onChange={e => setAmount(e.target.value.replace(',', '.'))}
+                className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
+            </div>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <label className={labelCls}>{t('costs.currency')}</label>
+            <CustomSelect value={cur} onChange={v => setCur(String(v))} searchable
+              options={currenciesWith(cur).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              style={{ width: '100%' }} />
+          </div>
         </div>
       </div>
     </Modal>

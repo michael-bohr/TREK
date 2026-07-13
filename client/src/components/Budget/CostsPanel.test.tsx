@@ -465,4 +465,102 @@ describe('CostsPanel — settlements in the ledger', () => {
     ]))
     expect(posted!.note).toContain('TICKETJSON:')
   })
+
+  // ── Display currency ───────────────────────────────────────────────────────
+
+  it('shows amounts in the trip currency when the user has no display currency set', async () => {
+    // No personal preference → the trip's own currency wins, instead of a hardcoded one.
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } })
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'JPY' }) })
+    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Sushi' }), total_price: 3000, currency: 'JPY', payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Sushi')
+    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]')
+    // Yen, unconverted and with JPY's zero decimals — not a euro/dollar default.
+    expect(card).toHaveTextContent('￥3,000')
+  })
+
+  // ── Payment currency ───────────────────────────────────────────────────────
+  // A transfer settling a shared bill can be made in any currency, so it carries its
+  // own rather than being assumed to be in the display one.
+
+  it('records a payment in the display currency by default', async () => {
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ settlement: { id: 1, ...posted } })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
+    await user.type(await screen.findByPlaceholderText('0.00'), '25')
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
+    await user.click(addButtons[addButtons.length - 1])
+
+    await waitFor(() => expect(posted).toMatchObject({ amount: 25, currency: 'EUR' }))
+  })
+
+  it('records a payment made in another currency', async () => {
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ settlement: { id: 1, ...posted } })
+      }),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
+    await user.type(await screen.findByPlaceholderText('0.00'), '25')
+    // Bob paid me back in dollars — the server freezes the USD rate on write.
+    await user.click(screen.getByText(/^EUR/))
+    await user.click(await screen.findByText(/^USD/))
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
+    await user.click(addButtons[addButtons.length - 1])
+
+    await waitFor(() => expect(posted).toMatchObject({ amount: 25, currency: 'USD' }))
+  })
+
+  it('reopens a foreign-currency payment with its own currency', async () => {
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () =>
+        HttpResponse.json({
+          balances: [],
+          flows: [],
+          settlements: [
+            { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, currency: 'USD', exchange_rate: 1.1, created_at: '2025-06-16 10:00:00', from_username: 'bob', to_username: 'alice' },
+          ],
+        })
+      ),
+    )
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Payment')
+    await user.click(screen.getByTitle('Edit'))
+
+    // The stored USD amount comes back as-is, not silently reread as euros.
+    expect((await screen.findByPlaceholderText('0.00') as HTMLInputElement).value).toBe('30')
+    expect(screen.getByText(/^USD/)).toBeInTheDocument()
+  })
 })
