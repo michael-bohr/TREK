@@ -33,7 +33,23 @@ interface Version {
   trek: string;
   size: number; apiVersion: number;
   nativeModules: false; operatorEgress?: boolean; publishedAt: string; signature?: string;
+  /**
+   * The manifest's dependency fields, mirrored.
+   *
+   * These are NOT optional decoration. TREK resolves requiredAddons and pluginDependencies from
+   * the registry INDEX, before it ever downloads the artifact — so an entry that omits them
+   * resolves against a dependency set the code does not actually have. Both the registry's CI
+   * (validate-entry.mjs) and `preflight` parity-check them against the manifest at the pinned
+   * commit, which means an entry built without them fails for any plugin that declares one.
+   *
+   * They were missing here until now, so `requiredAddons: ["budget"]` in a manifest produced an
+   * entry CI rejected with "manifest requiredAddons != entry requiredAddons" — after the release
+   * had been cut and its bytes pinned. Emitted only when non-empty, so ordinary entries are
+   * byte-identical to before.
+   */
+  requiredAddons?: string[]; pluginDependencies?: PluginDependency[];
 }
+interface PluginDependency { id: string; version: string }
 interface Entry {
   id: string; name: string; author: string; description: string; repo: string;
   homepage?: string; tags?: string[]; type: string; icon?: string; authorPublicKey?: string; versions: Version[];
@@ -96,6 +112,17 @@ export function buildEntry(opts: {
   // flag says the egress[] list is NOT the plugin's full network reach (an admin may add
   // hosts after install). Only emitted when true, so ordinary entries stay unchanged.
   if (manifest.operatorEgress === true) version.operatorEgress = true;
+
+  // Mirror the dependency fields. See the Version interface for why omitting these was a bug:
+  // TREK resolves them from the index before downloading, and CI refuses an entry that
+  // disagrees with the manifest. Only emitted when non-empty — an empty array and an absent
+  // one normalise identically on both sides of the parity check.
+  const requiredAddons = Array.isArray(manifest.requiredAddons) ? manifest.requiredAddons.map(String) : [];
+  if (requiredAddons.length) version.requiredAddons = requiredAddons;
+  const pluginDependencies = Array.isArray(manifest.pluginDependencies)
+    ? (manifest.pluginDependencies as PluginDependency[]).map((d) => ({ id: String(d?.id), version: String(d?.version) }))
+    : [];
+  if (pluginDependencies.length) version.pluginDependencies = pluginDependencies;
 
   // Optional author signature over the exact artifact bytes.
   let authorPublicKey: string | undefined;

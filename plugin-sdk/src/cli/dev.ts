@@ -392,7 +392,11 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       // hard-coded to 42 while the scaffold seeds trip 1, so the widget's first
       // trek:invoke hit assertMember(42, …) and 500'd with RESOURCE_FORBIDDEN.
       const previewTripId = Number(Object.keys(fx.trips ?? {})[0] ?? 1) || 1;
-      return send(200, preview(id, String(manifest.type), previewTripId), 'text/html; charset=utf-8');
+      // ?chrome=0 strips the dev toolbar and centres the plugin — what `trek-plugin shot`
+      // renders into docs/screenshot.png. ?theme=dark picks the dark palette.
+      const chrome = url.searchParams.get('chrome') !== '0';
+      const theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light';
+      return send(200, preview(id, String(manifest.type), previewTripId, { chrome, theme }), 'text/html; charset=utf-8');
     }
 
     // Static plugin UI at /ui (page/widget client bundle). The iframe loads
@@ -520,12 +524,19 @@ ${LIVE_RELOAD}`;
  * toggle), proxies trek:invoke to the dev server's /api routes with the dev user,
  * and surfaces resize/notify/navigate. This is where the design kit renders themed.
  */
-function preview(id: string, type: string, tripId: number): string {
+function preview(id: string, type: string, tripId: number, opts: { chrome?: boolean; theme?: 'light' | 'dark' } = {}): string {
   const maxW = type === 'widget' ? '440px' : '1000px';
+  // `trek-plugin shot` renders this page into docs/screenshot.png — the image the plugin store
+  // shows. The theme picker and the "runs sandboxed at an opaque origin" note are DEV furniture:
+  // useful while you build, absurd on a store card. So shot mode strips them and centres the
+  // plugin in the frame, and the shot is of the plugin rather than of the tool that drew it.
+  const chrome = opts.chrome !== false;
+  const dark = opts.theme === 'dark';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${id} · preview</title>
 <style>
 *{box-sizing:border-box}
+${chrome ? '' : 'header,.hint{display:none!important}.stage{min-height:100vh;align-items:center;padding:0 20px}'}
 body{margin:0;font:14px/1.5 system-ui,-apple-system,sans-serif;background:#f4f5f7;color:#111827}
 body.dark{background:#0e0e11;color:#e5e7eb}
 header{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:inherit;z-index:2}
@@ -545,7 +556,7 @@ iframe{width:100%;border:0;background:transparent;min-height:120px;display:block
 <header>
   <strong>${id}</strong><span style="opacity:.5">· ${type} preview</span>
   <span class="sp"></span>
-  <label>Theme <select id="theme"><option value="light">light</option><option value="dark">dark</option></select></label>
+  <label>Theme <select id="theme"><option value="light"${dark ? '' : ' selected'}>light</option><option value="dark"${dark ? ' selected' : ''}>dark</option></select></label>
   <label>Accent <select id="accent"><option value="default">default</option><option value="indigo">indigo</option><option value="teal">teal</option><option value="rose">rose</option></select></label>
   <label><input type="checkbox" id="rm"> reduce motion</label>
   <label><input type="checkbox" id="nt"> no transparency</label>

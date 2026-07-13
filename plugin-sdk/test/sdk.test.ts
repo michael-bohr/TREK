@@ -12,6 +12,7 @@ import { makeZip, listZipNames } from '../src/zip.js';
 import { packPluginDir } from '../src/cli/pack.js';
 import { buildEntry } from '../src/cli/entry.js';
 import { generateKeypair, signArtifact, publicKeyBase64, verifyArtifact, loadPrivateKey } from '../src/cli/sign.js';
+import { makePublishable } from './helpers.js';
 
 /** A central-directory zip reader mirroring the TREK server's, to prove round-trip. */
 function readZip(buf: Buffer): Record<string, Buffer> {
@@ -397,42 +398,78 @@ describe('scaffold + validate CLIs', () => {
   beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sdk-')); });
   afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
 
-  it('scaffolds a widget plugin that then validates (with README warnings)', () => {
+  /**
+   * A scaffold is HONESTLY INCOMPLETE: it builds and runs, but it is not publishable until it is
+   * documented. These two facts are the contract, and they are deliberately different:
+   *
+   *   pack/dev      work immediately — you can install it into a local TREK and try it.
+   *   validate      fails until the README is written and a screenshot exists.
+   *
+   * It used to be the other way round: a fresh scaffold passed `validate` (which only checked a
+   * fifth of the registry's rules and demoted the README to a warning), and the author learned
+   * the truth from CI — after cutting an immutable release. A green that means nothing is worse
+   * than a red that tells you what to do.
+   */
+  it('scaffolds a widget that builds immediately but is not yet publishable', () => {
     scaffold('my-widget', 'widget', tmp);
     const dir = path.join(tmp, 'my-widget');
     expect(fs.existsSync(path.join(dir, 'trek-plugin.json'))).toBe(true);
     expect(fs.existsSync(path.join(dir, 'server', 'index.js'))).toBe(true);
     expect(fs.existsSync(path.join(dir, 'client', 'index.html'))).toBe(true);
 
+    // It packs — the dev loop is not blocked by the docs gates.
+    expect(() => packPluginDir(dir, path.join(tmp, 'w.zip'))).not.toThrow();
+
+    // But it does not publish, and it says exactly why. Both of these used to be WARNINGS, which
+    // is how a scaffold could sail through `validate` and then be rejected by the registry.
     const r = validatePluginDir(dir);
-    expect(r.ok).toBe(true); // manifest + files valid
-    expect(r.warnings.some((w) => /placeholder|screenshot/.test(w))).toBe(true); // README is the unfilled template
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => /placeholder/.test(e))).toBe(true);
+    // The scaffold's README references ./docs/screenshot.png and never creates it. The old check
+    // regexed for an image LINK and passed; this one resolves the path.
+    expect(r.errors.some((e) => /screenshot/.test(e))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'docs', 'screenshot.png'))).toBe(false);
   });
 
-  // TREK resolves `icon` against lucide at render time and falls back to Blocks on a
-  // name it can't find, so a typo is invisible in the UI — validate has to surface it.
-  it('warns on an icon lucide does not know, without failing validation', () => {
+  it('a documented scaffold passes validate clean — the scaffold is not born unfixable', () => {
+    scaffold('done-plug', 'widget', tmp);
+    const dir = path.join(tmp, 'done-plug');
+    makePublishable(dir);
+
+    const r = validatePluginDir(dir);
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
+  /**
+   * The registry REJECTS an icon lucide does not have (validate-entry.mjs: "is not a lucide icon
+   * name"), so warning about it locally was a false green: the author saw a pass, cut the release,
+   * and CI failed them once the artifact was immutable. Local severity now matches the registry's.
+   */
+  it('rejects an icon lucide does not know — the registry does, so we must too', () => {
     scaffold('icon-plug', 'widget', tmp);
     const dir = path.join(tmp, 'icon-plug');
+    makePublishable(dir);
     const file = path.join(dir, 'trek-plugin.json');
     const m = JSON.parse(fs.readFileSync(file, 'utf8'));
     fs.writeFileSync(file, JSON.stringify({ ...m, icon: 'Stethscope' }, null, 2));
 
     const r = validatePluginDir(dir);
-    expect(r.ok).toBe(true); // a bad icon is never a hard error
-    expect(r.warnings.some((w) => /icon: "Stethscope" is not a known lucide icon name/.test(w))).toBe(true);
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => /Stethscope.*not a lucide icon/.test(e))).toBe(true);
   });
 
   it('accepts any real lucide icon name, not just a curated few', () => {
     scaffold('icon-plug', 'widget', tmp);
     const dir = path.join(tmp, 'icon-plug');
+    makePublishable(dir);
     const file = path.join(dir, 'trek-plugin.json');
     const m = JSON.parse(fs.readFileSync(file, 'utf8'));
     fs.writeFileSync(file, JSON.stringify({ ...m, icon: 'Stethoscope' }, null, 2));
 
     const r = validatePluginDir(dir);
     expect(r.ok).toBe(true);
-    expect(r.warnings.some((w) => /lucide icon name/.test(w))).toBe(false);
+    expect(r.errors.some((e) => /lucide icon/.test(e))).toBe(false);
   });
 
   it('scaffolds a client that opts into the design kit via the marker (source stays one line)', () => {
@@ -449,6 +486,7 @@ describe('scaffold + validate CLIs', () => {
     const m = JSON.parse(fs.readFileSync(path.join(dir, 'trek-plugin.json'), 'utf8'));
     expect(m.type).toBe('trip-page');
     expect(fs.existsSync(path.join(dir, 'client', 'index.html'))).toBe(true); // non-integration → gets a UI
+    makePublishable(dir);
     expect(validatePluginDir(dir).ok).toBe(true);
   });
 
@@ -485,9 +523,16 @@ describe('scaffold + validate CLIs', () => {
 
   it('tolerates a UTF-8 BOM in trek-plugin.json (Windows editors add one)', () => {
     scaffold('bom-plug', 'integration', tmp);
-    const mp = path.join(tmp, 'bom-plug', 'trek-plugin.json');
+    const dir = path.join(tmp, 'bom-plug');
+    makePublishable(dir);
+    const mp = path.join(dir, 'trek-plugin.json');
     fs.writeFileSync(mp, '\uFEFF' + fs.readFileSync(mp, 'utf8'));
-    expect(validatePluginDir(path.join(tmp, 'bom-plug')).ok).toBe(true);
+
+    // A bare JSON.parse chokes on the BOM and reports "Unexpected token" against an invisible
+    // character \u2014 the manifest must still parse, and the plugin must still be publishable.
+    const r = validatePluginDir(dir);
+    expect(r.errors.some((e) => /not valid JSON/.test(e))).toBe(false);
+    expect(r.ok).toBe(true);
   });
 
   it('validatePluginDir flags a missing manifest', () => {

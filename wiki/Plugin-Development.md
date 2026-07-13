@@ -14,19 +14,30 @@ npx trek-plugin-sdk create my-plugin --type integration|page|widget|trip-page   
 cd my-plugin
 ```
 
-The wizard (run `create` with no name) asks for the id, type, author and
-permissions; the direct form takes them as flags.
+The wizard (run `create` with no name) asks for the id, type, author, icon (checked
+against lucide — a typo there is invisible locally but rejected by the registry),
+permissions, egress hosts and required addons; the direct form takes them as flags.
 
 This emits:
 
 ```
 my-plugin/
-  trek-plugin.json      # manifest
+  trek-plugin.json      # manifest — including `icon`, and a widget's `slot`
   package.json          # CommonJS marker + the SDK as a devDependency
   server/index.js       # your plugin code (built, plain JS)
   client/index.html     # native UI via the design kit (page / widget / trip-page only)
-  README.md             # fill this in — the registry requires a screenshot
+  README.md             # fill this in — the registry requires four sections and a screenshot
+  docs/                 # where docs/screenshot.png goes; `trek-plugin shot` writes it
+  .gitattributes        # LF everywhere, so the packed artifact's sha256 is reproducible
 ```
+
+The scaffold declares `"trek": ">=3.4.0 <4.0.0"` — the `ctx` namespaces it is written
+against only exist from 3.4.0, and claiming an older floor would let the plugin install
+on a host where they are `undefined`.
+
+What you get **runs and packs immediately**, but it does **not** pass `validate` yet:
+the README is still a template and there is no screenshot. That is deliberate — those
+are yours to write — and `trek-plugin status` says exactly what is missing.
 
 ## Run it locally with hot reload
 
@@ -1027,7 +1038,12 @@ what your manifest declares.
   only). Vendor any *other* runtime deps: TREK never runs `npm install` on a plugin.
 - **Ship built JS** in `server/index.js` and pre-built static files in `client/`.
   `.ts` and `.map` files are stripped by `pack`.
-- Declare every outbound host in `egress[]` whenever you use `http:outbound`.
+- Declare every outbound host in `egress[]` whenever you use `http:outbound` — **and
+  grant each of them a matching `http:outbound:<host>` permission**. The runtime builds
+  the child process's network allow-list and the iframe's CSP from those *permissions*
+  only; it never reads `egress[]`, which exists for the admin's consent screen. A host
+  listed in `egress[]` with no matching permission installs, activates, consents — and
+  is then silently unreachable. `validate` errors on this.
 
 ## Manifest reference (`trek-plugin.json`)
 
@@ -1038,7 +1054,7 @@ what your manifest declares.
 | `version` | string, **required** | semver (`1.2.3`, optional pre-release). |
 | `apiVersion` | number | plugin API version (currently `1`; `PLUGIN_API_VERSION`). Defaults to `1`. |
 | `type` | string, **required** | `integration` \| `page` \| `widget` \| `trip-page`. |
-| `trek` | string, **required** | the TREK versions this plugin supports, as a semver **range**: `">=3.2.0 <4.0.0"`. Must be *satisfiable* (`">=4.0.0 <3.0.0"` parses but nothing can satisfy it — rejected). **Enforced at install and at activation** (see below); its lower bound is derived into `minTrekVersion` on the registry entry. |
+| `trek` | string, **required** | the TREK versions this plugin supports, as a semver **range**: `">=3.4.0 <4.0.0"` (what the scaffold writes). Must be *satisfiable* (`">=4.0.0 <3.0.0"` parses but nothing can satisfy it — rejected). **Enforced at install and at activation** (see below); it is copied verbatim onto the registry entry, which is the entry's only compatibility field. Keep it **bounded** — an unbounded range claims support for TREK versions that do not exist yet. |
 | `author` | string | shown in the store. |
 | `description` | string | one-line summary for the store. |
 | `icon` | string | lucide-react icon name (default `Blocks`); used for the page nav entry. |
@@ -1139,47 +1155,84 @@ guard optional `ctx.*` namespaces.
 | `oauth` | `{ initPath, callbackPath }` for OAuth flows. |
 
 **Page nav:** the host builds a page plugin's nav entry from the top-level `name`
-and `icon`. `create-trek-plugin` also scaffolds a `capabilities.nav` block, but the
-installed-manifest parser only consumes `capabilities.widget` — set `name`/`icon`
-to control the nav entry.
+and `icon` — the installed-manifest parser only consumes `capabilities.widget`, so
+there is nothing else to set. `icon` must be a real lucide name: TREK resolves it at
+render time and silently falls back to `Blocks`, which makes a typo invisible locally,
+so `validate` rejects one.
 
 See [[Plugin Permissions|Plugin-Permissions]] for the full permission model.
 
 ## The `trek-plugin` CLI
 
 Run `npx trek-plugin-sdk` **with no command** in a terminal and you get an
-interactive menu (create / dev / validate / pack / publish, with signing and
-registry-entry commands under **Advanced…**); it just picks which command to run,
-then that command prompts for whatever it needs. Pass a command explicitly to skip
-the menu (and for scripts/CI).
+interactive menu — create / dev / status / shot / publish, with validate, pack,
+signing and the registry-entry commands under **Advanced…** It picks which command to
+run and asks which plugin directory to run it against; that command then prompts for
+whatever else it needs. Pass a command explicitly to skip the menu (and for scripts and
+CI). `trek-plugin help <command>` — or `trek-plugin <command> --help` — prints a full
+page for any command.
 
-Author commands (from `trek-plugin-sdk`):
+**The path is four commands**, and the other nine are steps one of them already does:
 
 ```bash
-# 1. Manifest + layout checks (a subset of the registry CI — CI additionally
-#    verifies the GitHub release exists, the artifact sha256, and the README
-#    over the network).
-trek-plugin validate [dir]
-
-# 2. Build plugin.zip in the installer's exact layout. Prints sha256 + byte size,
-#    refuses native binaries, enforces the same size limits (25MB/file, 50MB total).
-#    Ships trek-plugin.json, README.md, LICENSE(.md), package.json + server/ + client/.
-#    docs/ is intentionally NOT shipped — the store fetches docs/screenshot.png
-#    from your repo. --json prints a machine-readable result.
-trek-plugin pack [dir] [--out plugin.zip] [--json]
-
-# 3. Emit the ready-to-PR registry entry: commitSha (resolved from the git tag),
-#    downloadUrl, sha256, size and minTrekVersion (derived from the manifest
-#    'trek' range) all computed for you. --merge prepends a new version onto an
-#    existing entry (the update case, kept newest-first).
-trek-plugin entry --repo owner/name --tag vX.Y.Z [--zip plugin.zip] [--merge entry.json] [--out file]
-
-# 4. One shot: pack -> create the GitHub release (via gh) -> print the entry.
-trek-plugin release [dir] --repo owner/name --tag vX.Y.Z
+trek-plugin create [name] [--type integration|page|widget|trip-page]
+trek-plugin dev [dir] [--port 4317]
+trek-plugin status [dir]
+trek-plugin publish [dir] --repo owner/name --tag vX.Y.Z [--sign]
 ```
 
-To publish, open a PR that adds the emitted JSON as
-`registry/plugins/<id>.json` in the TREK-Plugins registry.
+`status` is the one to reach for when you are not sure what to do next. It runs every
+gate the TREK-Plugins registry enforces that can be answered **without a network** —
+which is nearly all of them — and prints the whole journey as a checklist grouped by
+stage (Manifest, Code, Docs, Release, Repo), with the one command to run next. It never
+exits non-zero: it is for orientation, not for gating.
+
+```bash
+# The gate. The SAME checks as `status`, but it exits 1. This is the form for CI.
+trek-plugin validate [dir]
+
+# Build plugin.zip in the installer's exact layout. Prints sha256 + byte size,
+# refuses native binaries, enforces the same size limits (25MB/file, 50MB total).
+# Ships trek-plugin.json, README.md, LICENSE(.md), package.json + server/ + client/.
+# docs/ is intentionally NOT shipped — the store fetches docs/screenshot.png from
+# your repo. It refuses a plugin that could not LOAD, but deliberately does not
+# enforce the publish gates (an unwritten README, a missing screenshot) — packing is
+# how you sideload a plugin to try it locally.
+trek-plugin pack [dir] [--out plugin.zip] [--json]
+
+# Boot the dev server, render the plugin in the themed /preview frame, and write a
+# 1600x900 docs/screenshot.png. Needs Playwright (not an SDK dependency — it ships a
+# browser): npm i -D playwright && npx playwright install chromium
+trek-plugin shot [dir] [--port 4317] [--out docs/screenshot.png] [--dark] [--no-serve]
+
+# Ed25519 signing. keygen once; `publish --sign` is the usual way to use the key.
+trek-plugin keygen [--key file]
+trek-plugin sign [zip] [--key file]
+
+# Emit the ready-to-PR registry entry: commitSha (resolved from the git tag),
+# downloadUrl, sha256, size, and the manifest's `trek` range verbatim — plus
+# requiredAddons and pluginDependencies, which the registry parity-checks against the
+# manifest. --merge prepends a new version onto an existing entry (the update case,
+# kept newest-first).
+trek-plugin entry --repo owner/name --tag vX.Y.Z [--zip plugin.zip] [--merge entry.json] [--out file]
+
+# The registry checks that genuinely need the network: the tag resolves to the commit
+# the entry pins, the released artifact downloads and hashes to the pinned sha256, the
+# id is not bound to another GitHub owner, and an update does not drop or rotate a
+# signing key you already published under. `publish` runs this for you.
+trek-plugin preflight [dir] --repo owner/name --tag vX.Y.Z [--entry file.json] [--all]
+
+# Pack -> cut the GitHub release -> print the entry, without opening the registry PR.
+trek-plugin release [dir] --repo owner/name --tag vX.Y.Z [--sign] [--merge entry.json]
+
+# Fork the registry, write registry/plugins/<id>.json, open the PR. Needs `gh`.
+trek-plugin submit [dir] --repo owner/name --tag vX.Y.Z [--registry o/n] [--draft]
+```
+
+`publish` chains those last steps in the order that matters: **check → pack → release →
+preflight → submit**. The local gates run *before* anything is tagged or released,
+because a GitHub release is effectively immutable — the registry pins its sha256. See
+[[Publishing a Plugin|Plugin-Publishing]].
 
 ## Registry & publishing
 
