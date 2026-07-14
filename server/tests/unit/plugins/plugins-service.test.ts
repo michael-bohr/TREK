@@ -158,6 +158,15 @@ describe('PluginsFeedController (client feed)', () => {
     expect(new PluginsFeedController().list().plugins.find((p) => p.id === 'd')?.slot).toBe('day-detail');
   });
 
+  it('exposes settingsUi only when the capability is exactly true', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('su','S','widget','Box','active','{\"settingsUi\":true}')").run();
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('no','N','widget','Box','active','{\"settingsUi\":\"yes\"}')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    const out = new PluginsFeedController().list();
+    expect(out.plugins.find((p) => p.id === 'su')?.settingsUi).toBe(true);
+    expect(out.plugins.find((p) => p.id === 'no')?.settingsUi).toBeUndefined();
+  });
+
   it('exposes the reservation-detail slot (a booking-card widget must not fall back to the dashboard)', () => {
     testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('r','R','widget','Box','active','{\"widget\":{\"slot\":\"reservation-detail\"}}')").run();
     process.env.TREK_PLUGINS_ENABLED = 'true';

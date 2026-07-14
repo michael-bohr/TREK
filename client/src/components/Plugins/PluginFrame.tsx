@@ -97,6 +97,12 @@ interface PluginFrameProps {
   fill?: boolean
   className?: string
   title?: string
+  /**
+   * Entry document inside the plugin's client/ dir. Defaults to the widget's
+   * index.html; the user-settings surface loads settings.html instead. Host-set
+   * literals only — never user input (it becomes part of the frame URL).
+   */
+  path?: string
 }
 
 type Inbound =
@@ -118,7 +124,7 @@ interface ConfirmRequest {
   danger: boolean
 }
 
-export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title }: PluginFrameProps) {
+export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title, path = 'index.html' }: PluginFrameProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   // A sandboxed frame may navigate ITSELF (connect-src can't stop that), and its
   // window identity keeps matching our iframe afterwards. Track loads and refuse
@@ -369,7 +375,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       <iframe
         key={pluginId}
         ref={frameRef}
-        src={`/plugin-frame/${pluginId}/index.html`}
+        src={`/plugin-frame/${pluginId}/${path}`}
         // Deliver the context as soon as the document is parsed (the plugin sets up its
         // message listener during parse), closing the trek:ready race so the theme is
         // right on first paint. A 2nd load is a self-navigation — don't bridge to it.

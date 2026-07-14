@@ -180,7 +180,11 @@ export function validateManifest(raw: unknown): ValidationResult {
     notificationChannel?: { title?: unknown; events?: unknown };
     provides?: unknown;
     emits?: unknown;
+    settingsUi?: unknown;
   } | undefined;
+  if (capabilities?.settingsUi !== undefined && typeof capabilities.settingsUi !== 'boolean') {
+    errors.push('capabilities.settingsUi must be a boolean');
+  }
   const widget = capabilities?.widget;
   if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail' && widget.slot !== 'reservation-detail') {
     errors.push(`widget slot must be "sidebar", "hero", "place-detail", "day-detail" or "reservation-detail", got "${String(widget.slot)}"`);

@@ -100,6 +100,11 @@ describe('validateManifest', () => {
     expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['nope'] } } }).ok).toBe(false);
     expect(validateManifest({ ...page, capabilities: { tripPage: { position: -1 } } }).ok).toBe(false);
   });
+  it('validates settingsUi as a boolean', () => {
+    expect(validateManifest({ ...base, capabilities: { settingsUi: true } }).ok).toBe(true);
+    expect(validateManifest({ ...base, capabilities: { settingsUi: false } }).ok).toBe(true);
+    expect(validateManifest({ ...base, capabilities: { settingsUi: 'yes' } }).ok).toBe(false);
+  });
 });
 
 describe('createMockHost', () => {

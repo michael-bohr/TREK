@@ -551,6 +551,18 @@ settings are per-user. `secret: true` fields are stored encrypted and delivered
 decrypted through `ctx.config` (server-side only) — never to the iframe. Resolved
 values arrive in `ctx.config`.
 
+### A custom settings page (`capabilities.settingsUi`)
+
+When declared fields aren't enough — a picker with previews, anything visual —
+set `"capabilities": { "settingsUi": true }` and ship a `client/settings.html`.
+TREK frames it as a card on the user's **Settings → Plugins** page, in the same
+opaque-origin sandbox and postMessage bridge as your widget: it can only reach
+your own declared routes (`trek:invoke`), receives `trek:context`, and should
+report its height via `trek:resize`. Persist whatever it edits through one of
+your own routes (e.g. into your `db:own` database keyed by `req.user.id`) — the
+settings page has no special storage powers. Hosts older than this capability
+simply ignore the flag, so declaring it never breaks an install.
+
 ## Host-brokered OAuth (`ctx.oauth`)
 
 A plugin can act as an OAuth *client* of a third-party service **without ever handling the secrets**. The **host** runs the entire flow — authorize → callback → token exchange → refresh — with PKCE (S256) and a `state` check, and holds the tokens. The plugin only triggers "connect" and reads a **short-lived access token** at runtime.

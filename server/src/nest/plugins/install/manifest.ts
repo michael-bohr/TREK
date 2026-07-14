@@ -70,6 +70,8 @@ export interface PluginCapabilities {
   provides?: string[];
   /** Event names this plugin publishes to its dependents via ctx.events.emit. */
   emits?: string[];
+  /** The plugin ships client/settings.html; the host frames it on the user's settings page. */
+  settingsUi?: boolean;
 }
 
 /** A declared dependency on another plugin, pinned by a semver range. */
@@ -307,6 +309,10 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
       page.position = tp.position;
     }
     if (Object.keys(page).length) out.tripPage = page;
+  }
+  if (c.settingsUi !== undefined) {
+    if (typeof c.settingsUi !== 'boolean') throw new ManifestError('capabilities.settingsUi must be a boolean');
+    if (c.settingsUi) out.settingsUi = true;
   }
   if (c.notificationChannel && typeof c.notificationChannel === 'object') {
     const nc = c.notificationChannel as Record<string, unknown>;

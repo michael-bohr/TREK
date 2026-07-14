@@ -127,6 +127,13 @@ describe('parseManifest capabilities', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
   });
 
+  it('parses settingsUi as a strict boolean, dropping false', () => {
+    expect(parseManifest({ ...base, capabilities: { settingsUi: true } }).capabilities.settingsUi).toBe(true);
+    // false means "none" — it must not linger in the stored capabilities blob
+    expect(parseManifest({ ...base, capabilities: { settingsUi: false } }).capabilities.settingsUi).toBeUndefined();
+    expect(() => parseManifest({ ...base, capabilities: { settingsUi: 'yes' } })).toThrow(ManifestError);
+  });
+
   it('parses tripPage replaces + position, deduplicated', () => {
     const m = parseManifest({ ...base, capabilities: { tripPage: { replaces: ['transports', 'buchungen', 'transports'], position: 1 } } });
     expect(m.capabilities.tripPage).toEqual({ replaces: ['transports', 'buchungen'], position: 1 });
