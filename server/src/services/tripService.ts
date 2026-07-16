@@ -7,7 +7,7 @@ import { erasePluginUserData } from './userCleanupService';
 import { emitUserDeleted } from '../plugin-user-lifecycle';
 import { Trip, User } from '../types';
 import { listDays, listAccommodations, addDays } from './dayService';
-import { listBudgetItems } from './budgetService';
+import { listBudgetItems, removeUserFromBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
 import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
 import { listNotes as listCollabNotes } from './collabService';
@@ -525,6 +525,9 @@ export function deleteGuest(tripId: string | number, guestUserId: number): boole
   // host-side per-user tables + a durable own-db erasure per granted plugin — exactly
   // like a full account deletion (otherwise a deleted guest's plugin data lingers).
   erasePluginUserData(guestUserId);
+  // Re-split the expenses they were part of before the cascade takes their member
+  // rows away — the divisor is denormalized and cannot follow a foreign key (#1553).
+  removeUserFromBudgetItems(guestUserId);
   // Deleting the guest's users row cascades its membership and every assignment join
   // (trip_members, budget/packing/assignment links) via the ON DELETE foreign keys.
   db.prepare('DELETE FROM users WHERE id = ? AND is_guest = 1').run(guestUserId);
