@@ -33,7 +33,7 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote, addTripMember } from '../../helpers/factories';
+import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote, createDayAccommodation, addTripMember } from '../../helpers/factories';
 import { exportICS, generateDays, deleteOldCover, updateTrip, transferOwnership, createGuest, renameGuest, deleteGuest, listMembers, addMember } from '../../../src/services/tripService';
 import fs from 'fs';
 
@@ -366,8 +366,8 @@ describe('exportICS', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
     const reservation = createReservation(testDb, trip.id, {
-      title: 'Hotel Check-in',
-      type: 'hotel',
+      title: 'Museum Day Pass',
+      type: 'other',
     });
     testDb
       .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
@@ -525,6 +525,327 @@ describe('exportICS', () => {
     expect(ics).toContain('DTSTART;TZID=Asia/Tokyo:20250602T090000');
     expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Asia/Tokyo');
     expect(ics).not.toContain('DTSTART:20250602T090000');
+  });
+
+  // Splits the ICS into VEVENT blocks so assertions can target a single event.
+  const eventBlocks = (ics: string): string[] =>
+    ics.split('BEGIN:VEVENT').slice(1).map(b => b.split('END:VEVENT')[0]);
+  const blockWithSummary = (ics: string, summary: string): string | undefined =>
+    eventBlocks(ics).find(b => b.includes(`SUMMARY:${summary}`));
+
+  it('TRIP-SVC-021: hotel with accommodation range and times → check-in/check-out window events', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Kyoto Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const days = getDays(trip.id);
+    // createPlace default coords (Paris) → Europe/Paris via tz-lookup.
+    const place = createPlace(testDb, trip.id, { name: 'Grand Hotel Kyoto' });
+    const acc = createDayAccommodation(testDb, trip.id, place.id, days[1].id, days[3].id, {
+      check_in: '16:00',
+      check_out: '10:00',
+    });
+    const reservation = createReservation(testDb, trip.id, { title: 'Grand Hotel Kyoto', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id=? WHERE id=?').run(String(acc.id), reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    const checkin = blockWithSummary(ics, 'Check-in: Grand Hotel Kyoto');
+    const checkout = blockWithSummary(ics, 'Check-out: Grand Hotel Kyoto');
+    expect(checkin).toBeDefined();
+    expect(checkout).toBeDefined();
+    expect(checkin).toContain('DTSTART;TZID=Europe/Paris:20250602T160000');
+    expect(checkin).toContain('DTEND;TZID=Europe/Paris:20250602T170000');
+    expect(checkin).toContain('TRANSP:TRANSPARENT');
+    expect(checkin).toContain(`UID:trek-res-${reservation.id}-checkin@trek`);
+    expect(checkout).toContain('DTSTART;TZID=Europe/Paris:20250604T100000');
+    expect(checkout).toContain('DTEND;TZID=Europe/Paris:20250604T110000');
+    expect(checkout).toContain('TRANSP:TRANSPARENT');
+    expect(checkout).toContain(`UID:trek-res-${reservation.id}-checkout@trek`);
+    // The old single check-in-date event is gone
+    expect(ics).not.toContain(`UID:trek-res-${reservation.id}@trek`);
+  });
+
+  it('TRIP-SVC-022: hotel accommodation without times → default 15:00 check-in / 11:00 check-out', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Osaka Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const days = getDays(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Station Hotel' });
+    const acc = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[2].id);
+    const reservation = createReservation(testDb, trip.id, { title: 'Station Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id=? WHERE id=?').run(String(acc.id), reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    expect(blockWithSummary(ics, 'Check-in: Station Hotel')).toContain('DTSTART;TZID=Europe/Paris:20250601T150000');
+    expect(blockWithSummary(ics, 'Check-out: Station Hotel')).toContain('DTSTART;TZID=Europe/Paris:20250603T110000');
+  });
+
+  it('TRIP-SVC-023: hotel metadata check_in_time/check_out_time override accommodation times', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const days = getDays(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Tower Hotel' });
+    const acc = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[2].id, {
+      check_in: '15:00',
+      check_out: '11:00',
+    });
+    const reservation = createReservation(testDb, trip.id, { title: 'Tower Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id=?, metadata=? WHERE id=?').run(
+      String(acc.id),
+      JSON.stringify({ check_in_time: '14:00', check_out_time: '12:00' }),
+      reservation.id
+    );
+
+    const { ics } = exportICS(trip.id);
+
+    expect(blockWithSummary(ics, 'Check-in: Tower Hotel')).toContain('DTSTART;TZID=Europe/Paris:20250601T140000');
+    expect(blockWithSummary(ics, 'Check-out: Tower Hotel')).toContain('DTSTART;TZID=Europe/Paris:20250603T120000');
+  });
+
+  it('TRIP-SVC-024: imported hotel (no reservation_time, ISO datetimes in accommodation) is included', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Imported Trip' });
+    // Relative-trip days without dates: the accommodation ISO strings must supply date AND time.
+    const day1 = testDb.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 1, NULL)').run(trip.id);
+    const day2 = testDb.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 2, NULL)').run(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Imported Inn' });
+    const acc = createDayAccommodation(
+      testDb, trip.id, place.id,
+      Number(day1.lastInsertRowid), Number(day2.lastInsertRowid),
+      { check_in: '2025-06-02T16:00', check_out: '2025-06-04T10:00' }
+    );
+    const reservation = createReservation(testDb, trip.id, { title: 'Imported Inn', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, accommodation_id=? WHERE id=?')
+      .run(String(acc.id), reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    expect(blockWithSummary(ics, 'Check-in: Imported Inn')).toContain('DTSTART;TZID=Europe/Paris:20250602T160000');
+    expect(blockWithSummary(ics, 'Check-out: Imported Inn')).toContain('DTSTART;TZID=Europe/Paris:20250604T100000');
+  });
+
+  it('TRIP-SVC-025: hotel with only a bare-date reservation_time → floating check-in event only', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Legacy Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Legacy Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2025-06-02', reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    // No linked place/accommodation → no zone to attach; stays a floating local time.
+    expect(blockWithSummary(ics, 'Check-in: Legacy Hotel')).toContain('DTSTART:20250602T150000');
+    expect(ics).not.toContain('Check-out: Legacy Hotel');
+  });
+
+  it('TRIP-SVC-026: car rental with endpoints → pickup and drop-off events instead of one spanning event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Okinawa Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Toyota Rent a Car', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, confirmation_number=? WHERE id=?')
+      .run('99985723900', reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(reservation.id, 'from', 0, 'Naha Airport Shop', null, 26.2, 127.65, 'Asia/Tokyo', '17:30', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'Naha Airport Shop', null, 26.2, 127.65, 'Asia/Tokyo', '09:30', '2025-06-05');
+
+    const { ics } = exportICS(trip.id);
+
+    const pickup = blockWithSummary(ics, 'Pick up: Toyota Rent a Car');
+    const dropoff = blockWithSummary(ics, 'Drop off: Toyota Rent a Car');
+    expect(pickup).toBeDefined();
+    expect(dropoff).toBeDefined();
+    expect(pickup).toContain('DTSTART;TZID=Asia/Tokyo:20250602T173000');
+    expect(pickup).toContain('DTEND;TZID=Asia/Tokyo:20250602T183000');
+    expect(pickup).toContain('TRANSP:TRANSPARENT');
+    expect(pickup).toContain(`UID:trek-res-${reservation.id}-pickup@trek`);
+    expect(pickup).toContain('LOCATION:Naha Airport Shop');
+    expect(pickup).toContain('Confirmation: 99985723900');
+    expect(dropoff).toContain('DTSTART;TZID=Asia/Tokyo:20250605T093000');
+    expect(dropoff).toContain('DTEND;TZID=Asia/Tokyo:20250605T103000');
+    expect(dropoff).toContain(`UID:trek-res-${reservation.id}-dropoff@trek`);
+    // No multi-day busy block anymore
+    expect(ics).not.toContain(`UID:trek-res-${reservation.id}@trek`);
+  });
+
+  it('TRIP-SVC-027: car rental without endpoints falls back to reservation_time/reservation_end_time', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fuji Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Mishima Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T17:00', '2025-06-05T09:00', reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    // No endpoints and no linked place → floating local times.
+    expect(blockWithSummary(ics, 'Pick up: Mishima Rental')).toContain('DTSTART:20250602T170000');
+    expect(blockWithSummary(ics, 'Drop off: Mishima Rental')).toContain('DTSTART:20250605T090000');
+  });
+
+  it('TRIP-SVC-028: same-zone DTEND that is not after DTSTART is dropped (overnight arrival data)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Redeye Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'JFK → JAX', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    // Arrival wrongly recorded on the same local_date as departure — a real overnight-flight case.
+    insertEp.run(reservation.id, 'from', 0, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '21:42', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'Jacksonville', 'JAX', 30.5, -81.7, 'America/New_York', '00:31', '2025-06-02');
+
+    const { ics } = exportICS(trip.id);
+
+    const flight = blockWithSummary(ics, 'JFK → JAX');
+    expect(flight).toBeDefined();
+    expect(flight).toContain('DTSTART;TZID=America/New_York:20250602T214200');
+    expect(flight).not.toContain('DTEND');
+  });
+
+  it('TRIP-SVC-030: flight with BOTH reservation_time and endpoints uses the endpoint zones', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Both Fields Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'SEA → HND', type: 'flight' });
+    // Import/manual edits can leave reservation_time set alongside endpoints;
+    // the endpoints carry the per-side zones and must win.
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-06T11:50:00', '2026-07-07T14:15:00', reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(reservation.id, 'from', 0, 'Seattle', 'SEA', 47.45, -122.31, 'America/Los_Angeles', '11:50', '2026-07-06');
+    insertEp.run(reservation.id, 'to', 1, 'Tokyo Haneda', 'HND', 35.55, 139.78, 'Asia/Tokyo', '14:15', '2026-07-07');
+
+    const { ics } = exportICS(trip.id);
+
+    const flight = blockWithSummary(ics, 'SEA → HND');
+    expect(flight).toContain('DTSTART;TZID=America/Los_Angeles:20260706T115000');
+    expect(flight).toContain('DTEND;TZID=Asia/Tokyo:20260707T141500');
+    expect(flight).not.toContain('DTSTART:20260706T115000');
+  });
+
+  it('TRIP-SVC-031: hotel checkout uses the reservation_end_time clock when nothing else is stored', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'End Time Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Harbor Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T16:00', '2025-06-05T10:00', reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    expect(blockWithSummary(ics, 'Check-in: Harbor Hotel')).toContain('DTSTART:20250602T160000');
+    // 10:00 from reservation_end_time, not the 11:00 default
+    expect(blockWithSummary(ics, 'Check-out: Harbor Hotel')).toContain('DTSTART:20250605T100000');
+  });
+
+  it('TRIP-SVC-032: check-in window end (check_in_end) becomes the check-in event DTEND', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Window Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const days = getDays(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Window Hotel' });
+    const acc = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[2].id, {
+      check_in: '15:00',
+      check_out: '11:00',
+    });
+    testDb.prepare('UPDATE day_accommodations SET check_in_end=? WHERE id=?').run('20:00', acc.id);
+    const reservation = createReservation(testDb, trip.id, { title: 'Window Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id=? WHERE id=?').run(String(acc.id), reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    const checkin = blockWithSummary(ics, 'Check-in: Window Hotel');
+    expect(checkin).toContain('DTSTART;TZID=Europe/Paris:20250601T150000');
+    // The stored 15:00–20:00 window, not a fixed +60 minutes
+    expect(checkin).toContain('DTEND;TZID=Europe/Paris:20250601T200000');
+  });
+
+  it('TRIP-SVC-033: car whose only dated endpoint is the return still labels it Drop off', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Half Data Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'One Way Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
+      .run('2025-06-02T17:00', reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    // Pickup endpoint was dropped (failed geocoding); only the return endpoint survived.
+    insertEp.run(reservation.id, 'to', 1, 'Airport Shop', null, 26.2, 127.65, 'Asia/Tokyo', '09:30', '2025-06-05');
+
+    const { ics } = exportICS(trip.id);
+
+    const pickup = blockWithSummary(ics, 'Pick up: One Way Rental');
+    const dropoff = blockWithSummary(ics, 'Drop off: One Way Rental');
+    // Pickup falls back to reservation_time; the dated return endpoint must NOT masquerade as the pickup.
+    expect(pickup).toContain('DTSTART:20250602T170000');
+    expect(dropoff).toContain('DTSTART;TZID=Asia/Tokyo:20250605T093000');
+    expect(dropoff).toContain('LOCATION:Airport Shop');
+  });
+
+  it('TRIP-SVC-034: a bare-time overnight end rolls to the next day instead of being dropped', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Late Night Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Jazz Bar', type: 'event' });
+    // Ends at 01:00 the following morning, stored as a time-only end.
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T22:00', '01:00', reservation.id);
+
+    const { ics } = exportICS(trip.id);
+
+    const bar = blockWithSummary(ics, 'Jazz Bar');
+    expect(bar).toContain('DTSTART:20250602T220000');
+    expect(bar).toContain('DTEND:20250603T010000');
+  });
+
+  it('TRIP-SVC-035: corrupt or non-string metadata never crashes the export', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Robust Trip' });
+    const broken = createReservation(testDb, trip.id, { title: 'Broken Meta', type: 'activity' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
+      .run('2025-06-02T09:00', '{not valid json', broken.id);
+    const hotel = createReservation(testDb, trip.id, { title: 'Numeric Meta Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
+      .run('2025-06-02', JSON.stringify({ check_in_time: 1600 }), hotel.id);
+
+    let ics = '';
+    expect(() => { ics = exportICS(trip.id).ics; }).not.toThrow();
+
+    // The corrupt-metadata event still renders, just without metadata fields.
+    expect(ics).toContain('SUMMARY:Broken Meta');
+    // The numeric check_in_time is ignored in favor of the default.
+    expect(blockWithSummary(ics, 'Check-in: Numeric Meta Hotel')).toContain('DTSTART:20250602T150000');
+  });
+
+  it('TRIP-SVC-036: a dated but timeless endpoint does not downgrade a timed reservation_time to all-day', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Timeless Endpoint Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Ferry Ride', type: 'ferry' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T09:00', '2025-06-02T11:30', reservation.id);
+    // Endpoint carries only a date (no local_time) — the precise reservation_time must win.
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservation.id, 'from', 0, 'Harbor', null, 26.2, 127.65, 'Asia/Tokyo', null, '2025-06-02');
+
+    const { ics } = exportICS(trip.id);
+
+    const ferry = blockWithSummary(ics, 'Ferry Ride');
+    expect(ferry).toContain('DTSTART:20250602T090000');
+    expect(ferry).toContain('DTEND:20250602T113000');
+    expect(ferry).not.toContain('DTSTART;VALUE=DATE');
+  });
+
+  it('TRIP-SVC-029: trip banner and day-summary events are free (TRANSP:TRANSPARENT)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Banner Trip', start_date: '2025-06-01', end_date: '2025-06-03' });
+    const days = getDays(trip.id);
+    createDayNote(testDb, days[0].id, trip.id, { text: 'arrive late' });
+
+    const { ics } = exportICS(trip.id);
+
+    const banner = blockWithSummary(ics, 'Banner Trip');
+    const daySummary = eventBlocks(ics).find(b => b.includes(`UID:trek-day-${days[0].id}@trek`));
+    expect(banner).toContain('TRANSP:TRANSPARENT');
+    expect(daySummary).toBeDefined();
+    expect(daySummary).toContain('TRANSP:TRANSPARENT');
   });
 });
 

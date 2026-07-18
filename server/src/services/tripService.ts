@@ -9,7 +9,7 @@ import { Trip, User } from '../types';
 import { listDays, listAccommodations, addDays } from './dayService';
 import { listBudgetItems, removeUserFromBudgetItems } from './budgetService';
 import { listItems as listPackingItems } from './packingService';
-import { listReservations, loadEndpointsByTrip, resyncReservationDays } from './reservationService';
+import { listReservations, loadEndpointsByTrip, normalizeAccommodationId, resyncReservationDays } from './reservationService';
 import { listNotes as listCollabNotes } from './collabService';
 import { shiftOwnerEntriesForTripWindow } from './vacayService';
 import { resolveTimeZone } from './timezoneService';
@@ -691,7 +691,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   // last day on any server east of Greenwich (#1453).
   if (trip.start_date && trip.end_date) {
     const endStr = fmtDate(addDays(trip.end_date, 1));
-    ics += `BEGIN:VEVENT\r\nUID:${uid(trip.id, 'trip')}\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${fmtDate(trip.start_date)}\r\nDTEND;VALUE=DATE:${endStr}\r\nSUMMARY:${esc(trip.title || 'Trip')}\r\n`;
+    ics += `BEGIN:VEVENT\r\nUID:${uid(trip.id, 'trip')}\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${fmtDate(trip.start_date)}\r\nDTEND;VALUE=DATE:${endStr}\r\nTRANSP:TRANSPARENT\r\nSUMMARY:${esc(trip.title || 'Trip')}\r\n`;
     if (trip.description) ics += `DESCRIPTION:${esc(trip.description)}\r\n`;
     ics += `END:VEVENT\r\n`;
   }
@@ -743,6 +743,7 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
 
       ics += `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
       ics += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;
+      ics += 'TRANSP:TRANSPARENT\r\n';
       ics += `SUMMARY:${esc(dayTitle)}\r\n`;
 
       let desc = '';
@@ -771,57 +772,125 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
   const endpointsMap = loadEndpointsByTrip(tripId);
   const isDate = (s: string | null | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
   const isTime = (s: string | null | undefined) => !!s && /^\d{2}:\d{2}/.test(s);
+  // "YYYY-MM-DD", "YYYY-MM-DDTHH:MM[..]" → "YYYY-MM-DD"; anything else → null.
+  // Inputs may come from metadata JSON, so non-strings are tolerated, not thrown on.
+  const datePart = (s: unknown): string | null => {
+    if (typeof s !== 'string' || !s) return null;
+    const d = s.includes('T') ? s.split('T')[0] : s;
+    return isDate(d) ? d : null;
+  };
+  // "HH:MM[:SS]", "YYYY-MM-DDTHH:MM[..]" → "HH:MM"; bare dates → null
+  const timePart = (s: unknown): string | null => {
+    if (typeof s !== 'string' || !s) return null;
+    const t = s.includes('T') ? s.split('T')[1] : s;
+    const m = t ? t.match(/^(\d{2}:\d{2})/) : null;
+    return m ? m[1] : null;
+  };
+  // Pure wall-clock arithmetic (no Date object, so no server-DST edge cases):
+  // "YYYY-MM-DD" + "HH:MM" + minutes → "YYYY-MM-DDTHH:MM", carrying days via
+  // the UTC-safe addDays.
+  const addMinutesWall = (date: string, time: string, mins: number): string => {
+    const [h, mi] = time.split(':').map(Number);
+    const total = h * 60 + mi + mins;
+    const dayCarry = Math.floor(total / 1440);
+    const rest = total - dayCarry * 1440;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${dayCarry ? addDays(date, dayCarry) : date}T${p(Math.floor(rest / 60))}:${p(rest % 60)}`;
+  };
+
+  // A short free (non-busy) marker event: hotel check-in/check-out, car rental
+  // pickup/drop-off. endTime (a window end like check_in_end "20:00") wins over
+  // the default one-hour duration. Without a time it degrades to a transparent
+  // all-day event.
+  const emitWindowEvent = (opts: {
+    uid: string; summary: string; date: string; time: string | null; zone: string | null;
+    endTime?: string | null; durationMin?: number; description?: string; location?: string;
+  }): string => {
+    let ev = `BEGIN:VEVENT\r\nUID:${opts.uid}\r\nDTSTAMP:${now}\r\n`;
+    if (opts.time) {
+      ev += dtLine('DTSTART', `${opts.date}T${opts.time}`, opts.zone);
+      const endWall = opts.endTime && opts.endTime > opts.time
+        ? `${opts.date}T${opts.endTime}`
+        : addMinutesWall(opts.date, opts.time, opts.durationMin ?? 60);
+      ev += dtLine('DTEND', endWall, opts.zone);
+    } else {
+      ev += `DTSTART;VALUE=DATE:${fmtDate(opts.date)}\r\n`;
+    }
+    ev += 'TRANSP:TRANSPARENT\r\n';
+    ev += `SUMMARY:${esc(opts.summary)}\r\n`;
+    if (opts.description) ev += `DESCRIPTION:${esc(opts.description)}\r\n`;
+    if (opts.location) ev += `LOCATION:${esc(opts.location)}\r\n`;
+    ev += 'END:VEVENT\r\n';
+    return ev;
+  };
 
   // Build the DTSTART/DTEND lines for a reservation, or null when it has no
-  // calendar-placeable time. Hotels/restaurants use reservation_time; flights
-  // fall back to their first/last endpoint.
+  // calendar-placeable time. Endpoints (transports) are checked first: they
+  // carry per-side wall clocks AND zones, while reservation_time — which
+  // imports/edits can leave set on the same reservation — has no zone of its
+  // own, so preferring it rendered flights as floating times (#1453 remnant).
   const buildReservationTimeLines = (r: any): string | null => {
-    if (r.reservation_time) {
-      const datePart = r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time;
-      if (!isDate(datePart)) return null; // time-only (relative "Day N" trips)
-      if (r.reservation_time.includes('T')) {
-        // Hotels/restaurants: derive the zone from the linked place, if any.
-        const zone = resolveTimeZone(r.place_lat, r.place_lng);
-        let out = dtLine('DTSTART', r.reservation_time, zone);
-        if (r.reservation_end_time) {
-          const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
-          if (endDt.length >= 15) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
+    const eps = endpointsMap.get(r.id);
+    if (eps && eps.length > 0) {
+      const ordered = [...eps].sort((a, b) => a.sequence - b.sequence);
+      const first = ordered[0];
+      const last = ordered[ordered.length - 1];
+      if (isDate(first.local_date)) {
+        if (isTime(first.local_time)) {
+          // Transport: departure endpoint zone drives DTSTART, arrival drives DTEND.
+          // Prefer the stored IANA zone; fall back to the endpoint's coordinates.
+          const startZone = first.timezone || resolveTimeZone(first.lat, first.lng);
+          const startDt = fmtDateTime(`${first.local_date}T${first.local_time}`);
+          let out = dtLine('DTSTART', `${first.local_date}T${first.local_time}`, startZone);
+          if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
+            const endZone = last.timezone || resolveTimeZone(last.lat, last.lng);
+            const endDt = fmtDateTime(`${last.local_date}T${last.local_time}`);
+            // Wall clocks are only comparable within one zone — a valid HND→JFK
+            // arrival can read "earlier" than departure. Same zone (or both
+            // floating) with end ≤ start is bad overnight data: drop the DTEND.
+            const comparable = (startZone || null) === (endZone || null);
+            if (!comparable || endDt > startDt) out += dtLine('DTEND', `${last.local_date}T${last.local_time}`, endZone);
+          }
+          return out;
         }
-        return out;
+        // Endpoint has a date but no clock: a timed reservation_time is more
+        // precise, so only render all-day when no timed fallback exists.
+        if (!(typeof r.reservation_time === 'string' && r.reservation_time.includes('T'))) {
+          return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
+        }
       }
-      return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
+      // Otherwise (undated endpoints, or dated-but-timeless with a timed
+      // reservation_time) fall through to reservation_time rather than
+      // dropping or downgrading the reservation.
     }
 
-    const eps = endpointsMap.get(r.id);
-    if (!eps || eps.length === 0) return null;
-    const ordered = [...eps].sort((a, b) => a.sequence - b.sequence);
-    const first = ordered[0];
-    const last = ordered[ordered.length - 1];
-    if (!isDate(first.local_date)) return null;
-    if (isTime(first.local_time)) {
-      // Transport: departure endpoint zone drives DTSTART, arrival drives DTEND.
-      // Prefer the stored IANA zone; fall back to the endpoint's coordinates.
-      const startZone = first.timezone || resolveTimeZone(first.lat, first.lng);
-      let out = dtLine('DTSTART', `${first.local_date}T${first.local_time}`, startZone);
-      if (last !== first && isDate(last.local_date) && isTime(last.local_time)) {
-        const endZone = last.timezone || resolveTimeZone(last.lat, last.lng);
-        out += dtLine('DTEND', `${last.local_date}T${last.local_time}`, endZone);
+    if (!r.reservation_time) return null;
+    if (!datePart(r.reservation_time)) return null; // time-only (relative "Day N" trips)
+    if (r.reservation_time.includes('T')) {
+      // Restaurants/events: derive the zone from the linked place, if any.
+      const zone = resolveTimeZone(r.place_lat, r.place_lng);
+      const startDt = fmtDateTime(r.reservation_time);
+      let out = dtLine('DTSTART', r.reservation_time, zone);
+      if (r.reservation_end_time) {
+        let endWall = r.reservation_end_time;
+        let endDt = fmtDateTime(endWall, r.reservation_time);
+        // A time-only end earlier than the start crosses midnight (a bar that
+        // closes at 01:00): anchor it to the NEXT day instead of the start's.
+        if (!endWall.includes('T') && isTime(endWall) && endDt.length >= 15 && endDt < startDt) {
+          endWall = `${addDays(datePart(r.reservation_time)!, 1)}T${timePart(endWall)}`;
+          endDt = fmtDateTime(endWall);
+        }
+        // Guard: same-zone wall clocks are chronologically comparable as
+        // fixed-width strings; drop an end that isn't after the start (bad
+        // overnight data produced invalid negative-duration VEVENTs).
+        if (endDt.length >= 15 && endDt > startDt) out += dtLine('DTEND', endWall, zone, r.reservation_time);
       }
       return out;
     }
-    return `DTSTART;VALUE=DATE:${fmtDate(first.local_date)}\r\n`;
+    return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
   };
 
-  // Reservations as events
-  for (const r of reservations) {
-    const timeLines = buildReservationTimeLines(r);
-    if (!timeLines) continue;
-    const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
-
-    ics += `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
-    ics += timeLines;
-    ics += `SUMMARY:${esc(r.title)}\r\n`;
-
+  const buildReservationDescription = (r: any, meta: any): string => {
     let desc = r.type ? `Type: ${r.type}` : '';
     if (r.confirmation_number) desc += `\nConfirmation: ${r.confirmation_number}`;
     if (meta.airline) desc += `\nAirline: ${meta.airline}`;
@@ -843,6 +912,123 @@ export function exportICS(tripId: string | number): { ics: string; filename: str
     }
     if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
     if (r.notes) desc += `\n${r.notes}`;
+    return desc;
+  };
+
+  // Accommodation rows give hotels their stay range (day dates), check-in/
+  // check-out times, and a place for LOCATION + zone; check_in/check_out may be
+  // "HH:MM" (UI) or full ISO (booking import). Only loaded when the trip
+  // actually has hotel reservations.
+  const accommodations = new Map<number, any>();
+  if (reservations.some(r => r.type === 'hotel')) {
+    const accRows = db.prepare(`
+      SELECT a.id, a.check_in, a.check_in_end, a.check_out,
+             ds.date AS start_date, de.date AS end_date,
+             p.name AS place_name, p.address AS place_address,
+             p.lat AS place_lat, p.lng AS place_lng
+      FROM day_accommodations a
+      LEFT JOIN days ds ON a.start_day_id = ds.id
+      LEFT JOIN days de ON a.end_day_id = de.id
+      LEFT JOIN places p ON a.place_id = p.id
+      WHERE a.trip_id = ?
+    `).all(tripId) as any[];
+    for (const a of accRows) accommodations.set(a.id, a);
+  }
+
+  // Reservations as events
+  for (const r of reservations) {
+    // One corrupt metadata blob must not take down the whole feed.
+    let meta: any = {};
+    if (r.metadata) {
+      try {
+        meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata;
+      } catch { /* render the event without metadata fields */ }
+      if (!meta || typeof meta !== 'object') meta = {};
+    }
+
+    // Hotels: a pair of short transparent Check-in / Check-out marker events
+    // (like TripIt) instead of a single all-day event on the check-in date.
+    if (r.type === 'hotel') {
+      const accId = normalizeAccommodationId(r.accommodation_id);
+      const acc = accId != null ? accommodations.get(accId) : undefined;
+      const checkinDate = acc?.start_date || datePart(acc?.check_in) || datePart(r.reservation_time);
+      if (!checkinDate) continue;
+
+      const desc = buildReservationDescription(r, meta);
+      const location = r.location || acc?.place_address || acc?.place_name || undefined;
+      const zone = resolveTimeZone(r.place_lat, r.place_lng) || resolveTimeZone(acc?.place_lat, acc?.place_lng);
+
+      const checkinTime = timePart(meta.check_in_time) || timePart(acc?.check_in) || timePart(r.reservation_time) || '15:00';
+      ics += emitWindowEvent({
+        uid: `trek-res-${r.id}-checkin@trek`,
+        summary: `Check-in: ${r.title}`,
+        date: checkinDate, time: checkinTime, zone,
+        // Hotels advertise a check-in window ("15:00–20:00"); use its end when stored.
+        endTime: timePart(meta.check_in_end_time) || timePart(acc?.check_in_end),
+        description: desc, location,
+      });
+
+      const checkoutDate = acc?.end_date || datePart(acc?.check_out) || datePart(r.reservation_end_time);
+      if (checkoutDate) {
+        const checkoutTime = timePart(meta.check_out_time) || timePart(acc?.check_out) || timePart(r.reservation_end_time) || '11:00';
+        ics += emitWindowEvent({
+          uid: `trek-res-${r.id}-checkout@trek`,
+          summary: `Check-out: ${r.title}`,
+          date: checkoutDate, time: checkoutTime, zone, description: desc, location,
+        });
+      }
+      continue;
+    }
+
+    // Car rentals: transparent Pick up / Drop off marker events instead of one
+    // opaque event spanning the whole rental period.
+    if (r.type === 'car') {
+      const eps = [...(endpointsMap.get(r.id) || [])].sort((a, b) => a.sequence - b.sequence);
+      // Sides come from the endpoint role — import can drop one endpoint
+      // (failed geocoding), and a surviving return endpoint must not
+      // masquerade as the pickup. Positional first/last is only a fallback
+      // when roles are absent, and each side must be dated to count.
+      const pickupEp = eps.find(e => e.role === 'from') ?? (eps.length > 1 ? eps[0] : undefined);
+      const dropEp = eps.find(e => e.role === 'to') ?? (eps.length > 1 ? eps[eps.length - 1] : undefined);
+      const first = pickupEp && isDate(pickupEp.local_date) ? pickupEp : undefined;
+      const last = dropEp && dropEp !== pickupEp && isDate(dropEp.local_date) ? dropEp : undefined;
+      const desc = buildReservationDescription(r, meta);
+
+      // Per-side fallback: import may drop endpoints (failed geocoding) but
+      // still store the rental window on reservation_time/reservation_end_time.
+      const pickupDate = first?.local_date || datePart(r.reservation_time);
+      const pickupTime = first ? timePart(first.local_time) : timePart(r.reservation_time);
+      const pickupZone = first ? (first.timezone || resolveTimeZone(first.lat, first.lng)) : resolveTimeZone(r.place_lat, r.place_lng);
+      const dropDate = last?.local_date || datePart(r.reservation_end_time);
+      const dropTime = last ? timePart(last.local_time) : timePart(r.reservation_end_time);
+      const dropZone = last ? (last.timezone || resolveTimeZone(last.lat, last.lng)) : resolveTimeZone(r.place_lat, r.place_lng);
+
+      if (pickupDate) {
+        ics += emitWindowEvent({
+          uid: `trek-res-${r.id}-pickup@trek`,
+          summary: `Pick up: ${r.title}`,
+          date: pickupDate, time: pickupTime, zone: pickupZone, description: desc,
+          location: first?.name || r.location || undefined,
+        });
+      }
+      if (dropDate) {
+        ics += emitWindowEvent({
+          uid: `trek-res-${r.id}-dropoff@trek`,
+          summary: `Drop off: ${r.title}`,
+          date: dropDate, time: dropTime, zone: dropZone, description: desc,
+          location: last?.name || r.location || undefined,
+        });
+      }
+      continue;
+    }
+
+    const timeLines = buildReservationTimeLines(r);
+    if (!timeLines) continue;
+
+    ics += `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
+    ics += timeLines;
+    ics += `SUMMARY:${esc(r.title)}\r\n`;
+    const desc = buildReservationDescription(r, meta);
     if (desc) ics += `DESCRIPTION:${esc(desc)}\r\n`;
     if (r.location) ics += `LOCATION:${esc(r.location)}\r\n`;
     ics += `END:VEVENT\r\n`;
