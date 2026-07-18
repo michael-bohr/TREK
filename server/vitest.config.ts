@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import swc from 'unplugin-swc';
 
@@ -50,22 +51,23 @@ export default defineConfig({
       // MCP SDK's exports map uses extension-less wildcard targets that neither
       // Node nor Vite can resolve. Point directly at the CJS dist files.
       // Paths are relative to the monorepo root (packages are hoisted there).
-      '@modelcontextprotocol/sdk/server/mcp': new URL(
+      // fileURLToPath (not URL.pathname) so paths with spaces resolve on all OSes.
+      '@modelcontextprotocol/sdk/server/mcp': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js',
           import.meta.url
-      ).pathname,
-      '@modelcontextprotocol/sdk/server/streamableHttp': new URL(
+      )),
+      '@modelcontextprotocol/sdk/server/streamableHttp': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js',
           import.meta.url
-      ).pathname,
-      '@modelcontextprotocol/sdk/inMemory': new URL(
+      )),
+      '@modelcontextprotocol/sdk/inMemory': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js',
           import.meta.url
-      ).pathname,
-      '@modelcontextprotocol/sdk/client/index': new URL(
+      )),
+      '@modelcontextprotocol/sdk/client/index': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js',
           import.meta.url
-      ).pathname,
+      )),
     },
   },
 });
