@@ -93,13 +93,16 @@ export function createTrip(
     'INSERT INTO trips (user_id, title, description, start_date, end_date) VALUES (?, ?, ?, ?, ?)'
   ).run(userId, title, overrides.description ?? null, overrides.start_date ?? null, overrides.end_date ?? null);
 
-  // Auto-generate days if dates are provided
+  // Auto-generate days if dates are provided. Date-only strings parse as UTC
+  // midnight, so the increment must also be UTC — local setDate() drifts an
+  // hour across a DST boundary (e.g. US fall-back on 2025-11-02) and skips the
+  // final day on non-UTC machines.
   if (overrides.start_date && overrides.end_date) {
     const start = new Date(overrides.start_date);
     const end = new Date(overrides.end_date);
     const tripId = result.lastInsertRowid as number;
     let dayNumber = 1;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
       db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)').run(tripId, dayNumber++, dateStr);
     }
