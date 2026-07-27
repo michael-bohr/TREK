@@ -1,0 +1,374 @@
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Mail, Save, Trash2, RefreshCw, Plug, KeyRound, ExternalLink, ChevronDown, ChevronRight, History } from 'lucide-react'
+import { useTranslation } from '../../i18n'
+import { useToast } from '../shared/Toast'
+import Section from './Section'
+import ToggleSwitch from './ToggleSwitch'
+
+// Direct links to each provider's app-password page. Most providers block plain
+// IMAP logins and require a generated app password (with IMAP enabled).
+const APP_PASSWORD_LINKS: { label: string; url: string }[] = [
+  { label: 'Gmail', url: 'https://myaccount.google.com/apppasswords' },
+  { label: 'Outlook / Microsoft', url: 'https://account.microsoft.com/security' },
+  { label: 'Yahoo', url: 'https://login.yahoo.com/account/security/app-passwords' },
+  { label: 'iCloud Mail', url: 'https://support.apple.com/102654' },
+  { label: 'Fastmail', url: 'https://app.fastmail.com/settings/security/devicekeys' },
+]
+
+/**
+ * Settings → Integrations → Mail ingest. Connect a mailbox (IMAP) and TREK scans
+ * it for flight/hotel confirmations and files them onto trips. Mirrors the
+ * AirTrail / AI-parsing connection sections. The password is stored encrypted and
+ * never returned to the client.
+ */
+
+interface MailSource {
+  id: number
+  host: string
+  port: number
+  username: string
+  folder: string
+  poll_interval_minutes: number
+  mode: string
+  enabled: boolean
+  last_polled_at: string | null
+}
+
+interface ActivityRow {
+  id: number
+  status: string
+  subject: string | null
+  from_address: string | null
+  trip_id: number | null
+  trip_title: string | null
+  reservation_count: number
+  error: string | null
+  source_username: string
+  created_at: string
+}
+
+const STATUS_PILL: Record<string, string> = {
+  imported: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  error: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  skipped: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+}
+
+const inputCls =
+  'w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 border-edge bg-surface-secondary text-content'
+
+async function api<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
+  const res = await fetch(`/api/mail-ingest${path}`, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  })
+  const data = (await res.json().catch(() => ({}))) as { error?: string } & T
+  if (!res.ok) throw new Error(data?.error || 'Request failed')
+  return data
+}
+
+// SQLite CURRENT_TIMESTAMP is UTC ('YYYY-MM-DD HH:MM:SS') with no zone marker, so
+// mark it as UTC before formatting — otherwise the browser renders the UTC value as
+// if it were local time.
+function fmtChecked(ts: string): string {
+  const d = new Date(`${ts.replace(' ', 'T')}Z`)
+  return isNaN(d.getTime()) ? ts : d.toLocaleString()
+}
+
+export default function MailSourceSection(): React.ReactElement {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const [sources, setSources] = useState<MailSource[]>([])
+  const [host, setHost] = useState('')
+  const [port, setPort] = useState('993')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [folder, setFolder] = useState('INBOX')
+  const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [catchingUp, setCatchingUp] = useState<number | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [activityOpen, setActivityOpen] = useState(false)
+  // null = never fetched; fetched lazily on first expand, refreshed after a catch-up.
+  const [activity, setActivity] = useState<ActivityRow[] | null>(null)
+
+  const load = async () => {
+    try {
+      setSources(await api<MailSource[]>('/sources'))
+    } catch {
+      /* ignore — section just shows the empty form */
+    }
+  }
+  useEffect(() => {
+    load()
+  }, [])
+
+  const loadActivity = async () => {
+    try {
+      setActivity(await api<ActivityRow[]>('/activity?limit=20'))
+    } catch {
+      setActivity([])
+    }
+  }
+
+  const toggleActivity = () => {
+    const opening = !activityOpen
+    setActivityOpen(opening)
+    if (opening && activity === null) loadActivity()
+  }
+
+  const body = () => ({
+    host: host.trim(),
+    port: Number(port) || 993,
+    username: username.trim(),
+    password,
+    folder: folder.trim() || 'INBOX',
+  })
+
+  const test = async () => {
+    setTesting(true)
+    try {
+      const r = await api<{ ok: boolean; error?: string }>('/sources/test', { method: 'POST', body: JSON.stringify(body()) })
+      if (r.ok) toast.success(t('settings.mailIngest.toast.testOk'))
+      else toast.error(t('settings.mailIngest.toast.testFailed', { error: r.error ?? 'unknown error' }))
+    } catch (e) {
+      toast.error(t('settings.mailIngest.toast.testFailed', { error: (e as Error).message }))
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const add = async () => {
+    setBusy(true)
+    try {
+      await api('/sources', { method: 'POST', body: JSON.stringify(body()) })
+      setHost('')
+      setUsername('')
+      setPassword('')
+      setPort('993')
+      setFolder('INBOX')
+      toast.success(t('settings.mailIngest.toast.connected'))
+      load()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const toggle = async (s: MailSource) => {
+    try {
+      await api(`/sources/${s.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: !s.enabled }) })
+      load()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  const remove = async (s: MailSource) => {
+    try {
+      await api(`/sources/${s.id}`, { method: 'DELETE' })
+      load()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  const catchUp = async (s: MailSource) => {
+    setCatchingUp(s.id)
+    try {
+      const r = await api<{ imported: number; pending: number; skipped: number }>(`/sources/${s.id}/catch-up?days=30`, { method: 'POST' })
+      toast.success(t('settings.mailIngest.toast.caughtUp', { imported: r.imported, pending: r.pending, skipped: r.skipped }))
+      load()
+      if (activity !== null) loadActivity()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setCatchingUp(null)
+    }
+  }
+
+  const canSubmit = host.trim() && username.trim() && password
+
+  return (
+    <Section title={t('settings.mailIngest.title')} icon={Mail}>
+      <div className="space-y-4">
+        <p className="text-xs text-content-secondary">{t('settings.mailIngest.hint')}</p>
+
+        {/* Connected sources */}
+        {sources.length > 0 && (
+          <div className="space-y-2">
+            {sources.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 p-3 border rounded-lg border-edge bg-surface-secondary">
+                <Mail className="w-4 h-4 text-content-faint shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm text-content truncate">{s.username}</div>
+                  <div className="text-xs text-content-faint truncate">
+                    {s.host}:{s.port} · {s.folder}
+                    {s.last_polled_at
+                      ? ` · ${t('settings.mailIngest.lastChecked', { time: fmtChecked(s.last_polled_at) })}`
+                      : ` · ${t('settings.mailIngest.notCheckedYet')}`}
+                  </div>
+                </div>
+                <button
+                  onClick={() => catchUp(s)}
+                  disabled={catchingUp === s.id}
+                  title={t('settings.mailIngest.catchUpHint')}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-edge text-content-secondary hover:bg-surface disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${catchingUp === s.id ? 'animate-spin' : ''}`} />
+                  {t('settings.mailIngest.catchUp')}
+                </button>
+                <ToggleSwitch on={s.enabled} onToggle={() => toggle(s)} />
+                <button onClick={() => remove(s)} title={t('settings.mailIngest.remove')} className="p-1.5 rounded-lg text-content-faint hover:text-red-500 hover:bg-surface">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Recent activity — what mail-ingest actually did with the inbox. Mirrors
+            the app-password collapsible; rows come from the ingest audit log. */}
+        {sources.length > 0 && (
+          <div className="rounded-lg border overflow-hidden border-edge">
+            <button
+              type="button"
+              onClick={toggleActivity}
+              className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary"
+            >
+              <span className="flex items-center gap-1.5 text-sm font-medium text-content-secondary">
+                <History className="w-4 h-4" /> {t('settings.mailIngest.recentActivity')}
+              </span>
+              {activityOpen ? (
+                <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              ) : (
+                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              )}
+            </button>
+            {activityOpen && (
+              <div className="border-t border-edge divide-y divide-edge max-h-80 overflow-y-auto">
+                {activity === null ? (
+                  <p className="p-3 text-xs text-content-faint">{t('common.loading')}</p>
+                ) : activity.length === 0 ? (
+                  <p className="p-3 text-xs text-content-faint">{t('settings.mailIngest.activityEmpty')}</p>
+                ) : (
+                  activity.map((a) => (
+                    <div key={a.id} className="px-3 py-2 flex items-start gap-2">
+                      <span className={`shrink-0 mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded ${STATUS_PILL[a.status] ?? STATUS_PILL.skipped}`}>
+                        {a.status in STATUS_PILL ? t(`settings.mailIngest.status.${a.status}`) : a.status}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs text-content truncate" title={a.from_address ?? undefined}>
+                          {a.subject || t('settings.mailIngest.noSubject')}
+                        </div>
+                        <div className="text-[11px] text-content-faint truncate">
+                          {fmtChecked(a.created_at)}
+                          {a.trip_id != null && a.trip_title && (
+                            <>
+                              {' · '}
+                              <Link to={`/trips/${a.trip_id}`} className="underline hover:text-content">
+                                {a.trip_title}
+                              </Link>
+                              {a.reservation_count > 0 && ` ${t('settings.mailIngest.addedCount', { count: a.reservation_count })}`}
+                            </>
+                          )}
+                          {a.error && ` · ${a.error}`}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Add a mailbox */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.host')}</label>
+              <input type="text" autoComplete="off" value={host} onChange={(e) => setHost(e.target.value)} placeholder="imap.gmail.com" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.port')}</label>
+              <input type="text" autoComplete="off" value={port} onChange={(e) => setPort(e.target.value)} placeholder="993" className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.username')}</label>
+              <input type="text" autoComplete="off" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.password')}</label>
+              <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={inputCls} />
+              <p className="mt-1 text-xs text-content-faint">{t('settings.mailIngest.passwordHint')}</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-content-secondary">{t('settings.mailIngest.folder')}</label>
+            <input type="text" autoComplete="off" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="INBOX" className={inputCls} />
+            <p className="mt-1 text-xs text-content-faint">{t('settings.mailIngest.folderHint')}</p>
+          </div>
+
+          {/* App-password help — mirrors the MCP "Client Configuration" collapsible. */}
+          <div className="rounded-lg border overflow-hidden border-edge">
+            <button
+              type="button"
+              onClick={() => setHelpOpen((o) => !o)}
+              className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary"
+            >
+              <span className="flex items-center gap-1.5 text-sm font-medium text-content-secondary">
+                <KeyRound className="w-4 h-4" /> {t('settings.mailIngest.helpTitle')}
+              </span>
+              {helpOpen ? (
+                <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              ) : (
+                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+              )}
+            </button>
+            {helpOpen && (
+              <div className="p-3 border-t border-edge space-y-2">
+                <p className="text-xs text-content-faint">{t('settings.mailIngest.helpBody')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {APP_PASSWORD_LINKS.map((p) => (
+                    <a
+                      key={p.label}
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-edge text-xs text-content-secondary hover:bg-surface"
+                    >
+                      {p.label} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={test}
+              disabled={!canSubmit || testing}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-edge text-content-secondary hover:bg-surface disabled:opacity-50"
+            >
+              <Plug className="w-4 h-4" /> {testing ? t('settings.mailIngest.testing') : t('settings.mailIngest.testConnection')}
+            </button>
+            <button
+              onClick={add}
+              disabled={!canSubmit || busy}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" /> {busy ? t('settings.mailIngest.connecting') : t('settings.mailIngest.connect')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Section>
+  )
+}
