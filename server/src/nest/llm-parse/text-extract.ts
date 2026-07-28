@@ -1,5 +1,6 @@
 import { extname } from 'node:path';
 import { PDFParse } from 'pdf-parse';
+import { simpleParser } from 'mailparser';
 
 /** File extensions whose bytes are inherently text and can be decoded directly. */
 const TEXT_LIKE = new Set(['.txt', '.html', '.htm', '.eml']);
@@ -65,7 +66,27 @@ function cleanPdfText(text: string): string {
 export async function extractText(buffer: Buffer, fileName: string): Promise<string> {
   const ext = extname(fileName).toLowerCase();
   if (isPdf(fileName)) return extractPdfText(buffer);
+  if (ext === '.eml') return extractEmlText(buffer);
   const raw = buffer.toString('utf8');
-  if (ext === '.html' || ext === '.htm' || ext === '.eml') return stripMarkup(raw);
+  if (ext === '.html' || ext === '.htm') return stripMarkup(raw);
   return raw.trim();
+}
+
+/**
+ * MIME-parse an .eml so the model sees the message BODY (subject + text/html),
+ * not the raw SMTP/MIME headers. Without this the `Received:`/`DKIM:`/`ARC-*`
+ * header block fills the char budget before any booking detail is reached — a
+ * dead-on-arrival prompt, especially for forwarded confirmations.
+ */
+async function extractEmlText(buffer: Buffer): Promise<string> {
+  try {
+    const parsed = await simpleParser(buffer);
+    const subject = parsed.subject ? `Subject: ${parsed.subject}\n\n` : '';
+    const body = parsed.text?.trim() || (parsed.html ? stripMarkup(parsed.html) : '');
+    const out = `${subject}${body}`.trim();
+    if (out) return out;
+  } catch {
+    /* fall through to the raw decode below */
+  }
+  return stripMarkup(buffer.toString('utf8'));
 }
