@@ -2,7 +2,8 @@ import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Query
 import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { MailIngestService, type MailSourceInput } from './mail-ingest.service';
+import { MailIngestSourceDto, MailIngestSourceEnabledDto } from './mail-ingest.dto';
+import { MailIngestService } from './mail-ingest.service';
 
 /**
  * Per-user mail-source management + the manual "Catch up" trigger. Polling itself
@@ -25,8 +26,7 @@ export class MailIngestController {
   }
 
   @Post('sources')
-  async add(@CurrentUser() user: User, @Body() body: MailSourceInput) {
-    this.validate(body);
+  async add(@CurrentUser() user: User, @Body() body: MailIngestSourceDto) {
     try {
       return await this.mailIngest.addSource(user.id, body);
     } catch (err) {
@@ -35,8 +35,7 @@ export class MailIngestController {
   }
 
   @Post('sources/test')
-  test(@Body() body: MailSourceInput) {
-    this.validate(body);
+  test(@Body() body: MailIngestSourceDto) {
     return this.mailIngest.testConfig(body);
   }
 
@@ -47,7 +46,7 @@ export class MailIngestController {
   }
 
   @Patch('sources/:id')
-  setEnabled(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { enabled?: boolean }) {
+  setEnabled(@CurrentUser() user: User, @Param('id') id: string, @Body() body: MailIngestSourceEnabledDto) {
     if (!this.mailIngest.setEnabled(user.id, id, !!body?.enabled)) throw new HttpException({ error: 'Not found' }, 404);
     return { ok: true };
   }
@@ -59,12 +58,6 @@ export class MailIngestController {
       return await this.mailIngest.catchUp(user.id, id, d);
     } catch (err) {
       throw new HttpException({ error: err instanceof Error ? err.message : String(err) }, 400);
-    }
-  }
-
-  private validate(body: MailSourceInput): void {
-    if (!body?.host || !body?.username || !body?.password) {
-      throw new HttpException({ error: 'host, username and password are required' }, 400);
     }
   }
 }
