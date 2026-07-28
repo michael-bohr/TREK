@@ -10,5 +10,6 @@ import { LlmParseModule } from '../llm-parse/llm-parse.module';
   imports: [LlmParseModule],
   controllers: [BookingImportController, FeaturesController],
   providers: [BookingImportService, KitineraryExtractorService, ImportJobsService],
+  exports: [BookingImportService],
 })
 export class BookingImportModule {}
