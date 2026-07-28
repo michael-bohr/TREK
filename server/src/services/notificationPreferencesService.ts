@@ -30,6 +30,8 @@ export type NotifEventType =
   | 'photos_shared'
   | 'collab_message'
   | 'packing_tagged'
+  | 'mail_ingest_imported'
+  | 'mail_ingest_pending'
   | 'version_available'
   | 'synology_session_cleared'
   | 'plugin_notification';
@@ -46,6 +48,8 @@ export const ALL_EVENT_TYPES: NotifEventType[] = [
   'photos_shared',
   'collab_message',
   'packing_tagged',
+  'mail_ingest_imported',
+  'mail_ingest_pending',
   'version_available',
   'synology_session_cleared',
   'plugin_notification',
@@ -69,7 +73,8 @@ export interface ChannelDescriptor {
 
 /**
  * Channels implemented for an event. In-app takes everything; external channels
- * decide for themselves (today: everything except `synology_session_cleared`).
+ * decide for themselves (today: everything except the in-app-only events —
+ * `synology_session_cleared` and the per-booking `mail_ingest_*` pair).
  */
 export function combosFor(event: NotifEventType): NotifChannel[] {
   return [INAPP_CHANNEL, ...listChannels().filter(c => c.supportsEvent(event)).map(c => c.id)];

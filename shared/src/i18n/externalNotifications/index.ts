@@ -57,7 +57,9 @@ export const EMAIL_I18N: Record<string, EmailStrings> = Object.fromEntries(
   Object.entries(LOCALES).map(([k, v]) => [k, v.email]),
 );
 
-export const EVENT_TEXTS: Record<string, Record<NotificationEventKey, EventTextFn>> = Object.fromEntries(
+// Partial: optional event keys (see OptionalNotificationEventKey) may be absent
+// in a locale — getEventText falls back to the English entry per key.
+export const EVENT_TEXTS: Record<string, Partial<Record<NotificationEventKey, EventTextFn>>> = Object.fromEntries(
   Object.entries(LOCALES).map(([k, v]) => [k, v.events]),
 );
 

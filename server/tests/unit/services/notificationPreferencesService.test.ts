@@ -95,14 +95,15 @@ describe('getPreferencesMatrix', () => {
     const { event_types } = getPreferencesMatrix(user.id, 'user');
     expect(event_types).not.toContain('version_available');
     // +1 for plugin_notification: users can mute host-mediated plugin notifications.
-    expect(event_types.length).toBe(12);
+    // +2 for mail_ingest_imported/mail_ingest_pending (in-app only).
+    expect(event_types.length).toBe(14);
   });
 
   it('NPREF-005 — user scope excludes version_available for everyone including admins', () => {
     const { user } = createAdmin(testDb);
     const { event_types } = getPreferencesMatrix(user.id, 'admin', 'user');
     expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(12);
+    expect(event_types.length).toBe(14);
   });
 
   it('NPREF-005b — admin scope returns only version_available', () => {
@@ -163,6 +164,13 @@ describe('getPreferencesMatrix', () => {
     expect(implemented_combos['trip_invite']).toContain('email');
     expect(implemented_combos['trip_invite']).toContain('webhook');
     expect(implemented_combos['trip_invite']).toContain('ntfy');
+  });
+
+  it('NPREF-011b — mail_ingest events are in-app only', () => {
+    const { user } = createUser(testDb);
+    const { implemented_combos } = getPreferencesMatrix(user.id, 'user');
+    expect(implemented_combos['mail_ingest_imported']).toEqual(['inapp']);
+    expect(implemented_combos['mail_ingest_pending']).toEqual(['inapp']);
   });
 });
 

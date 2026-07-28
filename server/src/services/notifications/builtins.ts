@@ -22,12 +22,17 @@ import { registerChannel, type ChannelMessage, type ExternalChannel } from './ch
 // notificationService.send() can iterate instead of branching.
 
 /**
- * Every event except `synology_session_cleared` is deliverable externally.
- * This is the pre-registry IMPLEMENTED_COMBOS table, transposed: it listed
- * ['inapp','email','webhook','ntfy'] for every event and ['inapp'] for that one.
+ * Events that never leave the app. This is the pre-registry IMPLEMENTED_COMBOS
+ * table, transposed: it listed ['inapp','email','webhook','ntfy'] for every
+ * event and ['inapp'] for these.
+ *  - synology_session_cleared: server housekeeping, no user-facing channel makes sense.
+ *  - mail_ingest_imported / mail_ingest_pending: fire per-booking on every scanned
+ *    email that imports or defers — email/webhook/push would flood a busy inbox.
  */
-function supportsAllButSynology(event: string): boolean {
-  return event !== 'synology_session_cleared';
+const INAPP_ONLY_EVENTS = new Set(['synology_session_cleared', 'mail_ingest_imported', 'mail_ingest_pending']);
+
+function supportsAllButInAppOnly(event: string): boolean {
+  return !INAPP_ONLY_EVENTS.has(event);
 }
 
 const emailChannel: ExternalChannel = {
@@ -38,7 +43,7 @@ const emailChannel: ExternalChannel = {
   // admin has not put `email` in notification_channels — the admin global pref
   // gates it instead. Verbatim from the pre-registry dispatch.
   bypassesActiveToggleForAdminEvents: true,
-  supportsEvent: supportsAllButSynology,
+  supportsEvent: supportsAllButInAppOnly,
   isInstanceConfigured: isSmtpConfigured,
   isConfiguredFor: (userId) => !!getUserEmail(userId),
   async sendToUser(userId, msg) {
@@ -58,7 +63,7 @@ const webhookChannel: ExternalChannel = {
   source: 'builtin',
   labelKey: 'settings.notificationPreferences.webhook',
   supportsAdminGlobal: true,
-  supportsEvent: supportsAllButSynology,
+  supportsEvent: supportsAllButInAppOnly,
   isConfiguredFor: (userId) => !!getUserWebhookUrl(userId),
   async sendToUser(userId, msg) {
     const url = getUserWebhookUrl(userId);
@@ -82,7 +87,7 @@ const ntfyChannel: ExternalChannel = {
   source: 'builtin',
   labelKey: 'settings.notificationPreferences.ntfy',
   supportsAdminGlobal: true,
-  supportsEvent: supportsAllButSynology,
+  supportsEvent: supportsAllButInAppOnly,
   isConfiguredFor: (userId) => !!resolveNtfyUrl(getAdminNtfyConfig(), getUserNtfyConfig(userId)),
   async sendToUser(userId, msg) {
     const userCfg = getUserNtfyConfig(userId);
