@@ -28,7 +28,7 @@ const notif: TranslationStrings = {
   'notif.mail_ingest_imported.title': '预订已导入',
   'notif.mail_ingest_imported.text': '"{subject}" 已归档到 {trip}',
   'notif.mail_ingest_pending.title': '预订待审核',
-  'notif.mail_ingest_pending.text': '"{subject}" 无法匹配到任何行程({reason})',
+  'notif.mail_ingest_pending.text': '"{subject}" 无法匹配到任何行程（{reason}）',
   'notif.version_available.title': '新版本可用',
   'notif.version_available.text': 'TREK {version} 现已可用',
   'notif.action.view_trip': '查看旅行',

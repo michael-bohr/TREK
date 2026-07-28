@@ -28,7 +28,7 @@ const notif: TranslationStrings = {
   'notif.mail_ingest_imported.title': '予約を取り込みました',
   'notif.mail_ingest_imported.text': '「{subject}」を{trip}に登録しました',
   'notif.mail_ingest_pending.title': '予約の確認が必要です',
-  'notif.mail_ingest_pending.text': '「{subject}」を旅程に紐付けられませんでした({reason})',
+  'notif.mail_ingest_pending.text': '「{subject}」を旅程に紐付けられませんでした（{reason}）',
   'notif.version_available.title': '新しいバージョンがあります',
   'notif.version_available.text': 'TREK {version}が利用可能です',
   'notif.action.view_trip': '旅行を見る',

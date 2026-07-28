@@ -351,8 +351,8 @@ const settings: TranslationStrings = {
   'settings.mailIngest.passwordHint':
     '多くのプロバイダーでは通常のパスワードの代わりにアプリパスワードが必要です — 下記を参照してください。',
   'settings.mailIngest.folder': 'フォルダ',
-  'settings.mailIngest.folderHint': '予約をスキャンするIMAPフォルダ(デフォルトはINBOX)。',
-  'settings.mailIngest.helpTitle': 'アプリパスワードはどこで取得できますか?',
+  'settings.mailIngest.folderHint': '予約をスキャンするIMAPフォルダ（デフォルトはINBOX）。',
+  'settings.mailIngest.helpTitle': 'アプリパスワードはどこで取得できますか？',
   'settings.mailIngest.helpBody':
     '多くのプロバイダーは通常のIMAPログインをブロックしており、IMAPアクセスを有効にして生成したアプリパスワードが必要です。',
   'settings.mailIngest.testConnection': '接続をテスト',
@@ -366,7 +366,7 @@ const settings: TranslationStrings = {
   'settings.mailIngest.notCheckedYet': 'まだ確認していません',
   'settings.mailIngest.recentActivity': '最近のアクティビティ',
   'settings.mailIngest.activityEmpty': 'まだアクティビティはありません。',
-  'settings.mailIngest.noSubject': '(件名なし)',
+  'settings.mailIngest.noSubject': '（件名なし）',
   'settings.mailIngest.addedCount': '{count}件追加',
   'settings.mailIngest.status.imported': '取り込み済み',
   'settings.mailIngest.status.pending': '要確認',
