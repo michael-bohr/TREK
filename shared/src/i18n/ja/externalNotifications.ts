@@ -54,7 +54,7 @@ const ja: NotificationLocale = {
     }),
     mail_ingest_pending: (p) => ({
       title: '予約の確認が必要です',
-      body: `「${p.subject}」を旅程に紐付けられませんでした(${p.reason})。`,
+      body: `「${p.subject}」を旅程に紐付けられませんでした（${p.reason}）。`,
     }),
     version_available: (p) => ({
       title: '新しいTREKバージョンが利用可能',

@@ -54,7 +54,7 @@ const zh: NotificationLocale = {
     }),
     mail_ingest_pending: (p) => ({
       title: '预订待审核',
-      body: `"${p.subject}" 无法匹配到任何行程(${p.reason})。`,
+      body: `"${p.subject}" 无法匹配到任何行程（${p.reason}）。`,
     }),
     version_available: (p) => ({
       title: '新版 TREK 可用',

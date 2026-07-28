@@ -54,7 +54,7 @@ const zhTW: NotificationLocale = {
     }),
     mail_ingest_pending: (p) => ({
       title: '預訂待審查',
-      body: `「${p.subject}」無法比對到任何行程(${p.reason})。`,
+      body: `「${p.subject}」無法比對到任何行程（${p.reason}）。`,
     }),
     version_available: (p) => ({
       title: '新版 TREK 可用',
