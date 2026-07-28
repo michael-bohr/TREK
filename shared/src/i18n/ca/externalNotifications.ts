@@ -44,6 +44,14 @@ const ca: NotificationLocale = {
       title: `Equipatge: ${p.category}`,
       body: `${p.actor} et va assignar a la categoria "${p.category}" a "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Reserva importada',
+      body: `"${p.subject}" es va arxivar a "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Reserva pendent de revisió',
+      body: `No s'ha pogut associar "${p.subject}" a cap viatge (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Versió nova de TREK disponible',
       body: `TREK ${p.version} ja està disponible. Visita el panell d'administració per actualitzar.`,

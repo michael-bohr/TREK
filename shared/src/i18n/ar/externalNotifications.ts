@@ -48,6 +48,14 @@ const ar: NotificationLocale = {
       title: `قائمة التعبئة: ${p.category}`,
       body: `${p.actor} عيّنك في فئة "${p.category}" في "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'تم استيراد الحجز',
+      body: `تمت أرشفة "${p.subject}" في "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'الحجز يتطلب مراجعة',
+      body: `تعذّرت مطابقة "${p.subject}" مع أي رحلة (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'إصدار TREK جديد متاح',
       body: `TREK ${p.version} متاح الآن. تفضل بزيارة لوحة الإدارة للتحديث.`,

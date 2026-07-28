@@ -48,6 +48,14 @@ const gr: NotificationLocale = {
       title: `Λίστα συσκευασίας: ${p.category}`,
       body: `Ο/Η ${p.actor} σας ανέθεσε στην κατηγορία "${p.category}" της λίστας συσκευασίας στο "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Έγινε εισαγωγή κράτησης',
+      body: `Το "${p.subject}" καταχωρήθηκε στο "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Κράτηση απαιτεί έλεγχο',
+      body: `Το "${p.subject}" δεν μπόρεσε να αντιστοιχιστεί σε ταξίδι (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Νέα έκδοση TREK διαθέσιμη',
       body: `Η έκδοση TREK ${p.version} είναι τώρα διαθέσιμη. Επισκεφθείτε τον πίνακα διαχείρισης για να ενημερώσετε.`,

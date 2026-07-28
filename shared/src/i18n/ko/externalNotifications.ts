@@ -48,6 +48,14 @@ const ko: NotificationLocale = {
       title: `짐 꾸리기: ${p.category}`,
       body: `${p.actor}이(가) "${p.trip}"의 "${p.category}" 카테고리에 당신을 할당했습니다.`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: '예약을 가져왔습니다',
+      body: `"${p.subject}"이(가) "${p.trip}"에 등록되었습니다.`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: '예약 검토가 필요합니다',
+      body: `"${p.subject}"을(를) 여행과 연결하지 못했습니다 (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: '새 TREK 버전 사용 가능',
       body: `TREK ${p.version}을 사용할 수 있습니다. 관리자 패널에서 업데이트하세요.`,

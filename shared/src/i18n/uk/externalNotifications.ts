@@ -48,6 +48,14 @@ const uk: NotificationLocale = {
       title: `Пакування: ${p.category}`,
       body: `${p.actor} призначив вас до категорії "${p.category}" у "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Бронювання імпортовано',
+      body: `"${p.subject}" додано до "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Бронювання потребує перевірки',
+      body: `"${p.subject}" не вдалося зіставити з поїздкою (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Доступна нова версія TREK',
       body: `TREK ${p.version} тепер доступний. Перейдіть до панелі адміністратора для оновлення.`,

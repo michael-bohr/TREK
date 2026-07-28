@@ -48,6 +48,14 @@ const id: NotificationLocale = {
       title: `Pengepakan: ${p.category}`,
       body: `${p.actor} menugaskan Anda ke kategori "${p.category}" di "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Pemesanan diimpor',
+      body: `"${p.subject}" diarsipkan ke "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Pemesanan perlu ditinjau',
+      body: `"${p.subject}" tidak dapat dicocokkan dengan perjalanan mana pun (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Versi TREK baru tersedia',
       body: `TREK ${p.version} sekarang tersedia. Kunjungi panel admin untuk memperbarui.`,

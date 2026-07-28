@@ -48,6 +48,14 @@ const de: NotificationLocale = {
       title: `Packliste: ${p.category}`,
       body: `${p.actor} hat dich der Kategorie "${p.category}" in der Packliste von "${p.trip}" zugewiesen.`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Buchung importiert',
+      body: `"${p.subject}" wurde "${p.trip}" zugeordnet.`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Buchung muss geprüft werden',
+      body: `"${p.subject}" konnte keiner Reise zugeordnet werden (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Neue TREK-Version verfügbar',
       body: `TREK ${p.version} ist jetzt verfügbar. Besuche das Admin-Panel zum Aktualisieren.`,

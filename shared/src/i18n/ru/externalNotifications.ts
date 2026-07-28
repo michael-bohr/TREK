@@ -48,6 +48,14 @@ const ru: NotificationLocale = {
       title: `Список вещей: ${p.category}`,
       body: `${p.actor} назначил вас в категорию "${p.category}" в "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Бронирование импортировано',
+      body: `"${p.subject}" добавлено в "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Бронирование требует проверки',
+      body: `"${p.subject}" не удалось сопоставить с поездкой (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Доступна новая версия TREK',
       body: `TREK ${p.version} теперь доступен. Перейдите в панель администратора для обновления.`,

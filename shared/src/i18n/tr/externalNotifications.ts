@@ -48,6 +48,14 @@ const tr: NotificationLocale = {
       title: `Bagaj: ${p.category}`,
       body: `${p.actor}, sizi "${p.trip}" içindeki "${p.category}" bagaj kategorisine atadı.`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Rezervasyon içe aktarıldı',
+      body: `"${p.subject}", "${p.trip}" seyahatine kaydedildi.`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Rezervasyon inceleme gerektiriyor',
+      body: `"${p.subject}" bir seyahatle eşleştirilemedi (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Yeni TREK sürümü mevcut',
       body: `TREK ${p.version} artık mevcut. Güncellemek için yönetici panelini ziyaret edin.`,

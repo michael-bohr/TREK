@@ -48,6 +48,14 @@ const en: NotificationLocale = {
       title: `Packning: ${p.category}`,
       body: `${p.actor} tilldelade dig till "${p.category}" packning kategori i "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Bokning importerad',
+      body: `"${p.subject}" lades till i "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Bokning behöver granskas',
+      body: `"${p.subject}" kunde inte matchas mot en resa (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Ny TREK version tillgänglig',
       body: `TREK ${p.version} är nu tillgänglig. Gå till adminpanelen för att uppdatera.`,

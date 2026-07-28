@@ -48,6 +48,14 @@ const en: NotificationLocale = {
       title: `Đang đóng đồ: ${p.category}`,
       body: `${p.actor} đã giao cho bạn đóng "${p.category}" trong "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Đã nhập đặt chỗ',
+      body: `"${p.subject}" đã được xếp vào "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Đặt chỗ cần xem xét',
+      body: `"${p.subject}" không thể khớp với chuyến đi nào (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Đã có phiên bản TREK mới',
       body: `TREK ${p.version} có bản mới. Vui lòng truy cập bảng điều khiển quản trị để cập nhật.`,

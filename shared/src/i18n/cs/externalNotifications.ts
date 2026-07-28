@@ -48,6 +48,14 @@ const cs: NotificationLocale = {
       title: `Balení: ${p.category}`,
       body: `${p.actor} vás přiřadil do kategorie "${p.category}" v "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Rezervace importována',
+      body: `"${p.subject}" byla přiřazena k "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Rezervace vyžaduje kontrolu',
+      body: `"${p.subject}" se nepodařilo přiřadit k žádné cestě (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Nová verze TREK dostupná',
       body: `TREK ${p.version} je nyní dostupný. Navštivte administrátorský panel pro aktualizaci.`,

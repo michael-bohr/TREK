@@ -48,6 +48,14 @@ const zh: NotificationLocale = {
       title: `行李清单：${p.category}`,
       body: `${p.actor} 将你分配到"${p.trip}"中的"${p.category}"类别。`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: '预订已导入',
+      body: `"${p.subject}" 已归档到 "${p.trip}"。`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: '预订待审核',
+      body: `"${p.subject}" 无法匹配到任何行程(${p.reason})。`,
+    }),
     version_available: (p) => ({
       title: '新版 TREK 可用',
       body: `TREK ${p.version} 现已可用。请前往管理面板进行更新。`,

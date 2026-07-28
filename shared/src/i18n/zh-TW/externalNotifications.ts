@@ -48,6 +48,14 @@ const zhTW: NotificationLocale = {
       title: `打包清單：${p.category}`,
       body: `${p.actor} 已將您指派到「${p.trip}」中的「${p.category}」分類。`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: '預訂已匯入',
+      body: `「${p.subject}」已歸檔到「${p.trip}」。`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: '預訂待審查',
+      body: `「${p.subject}」無法比對到任何行程(${p.reason})。`,
+    }),
     version_available: (p) => ({
       title: '新版 TREK 可用',
       body: `TREK ${p.version} 現已可用。請前往管理面板進行更新。`,

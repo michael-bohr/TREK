@@ -48,6 +48,14 @@ const ja: NotificationLocale = {
       title: `パッキング：${p.category}`,
       body: `${p.actor}が「${p.trip}」の「${p.category}」カテゴリにあなたを割り当てました。`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: '予約を取り込みました',
+      body: `「${p.subject}」を「${p.trip}」に登録しました。`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: '予約の確認が必要です',
+      body: `「${p.subject}」を旅程に紐付けられませんでした(${p.reason})。`,
+    }),
     version_available: (p) => ({
       title: '新しいTREKバージョンが利用可能',
       body: `TREK ${p.version}が利用可能になりました。管理パネルからアップデートしてください。`,

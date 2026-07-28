@@ -48,6 +48,14 @@ const nl: NotificationLocale = {
       title: `Paklijst: ${p.category}`,
       body: `${p.actor} heeft je toegewezen aan de categorie "${p.category}" in "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Boeking geïmporteerd',
+      body: `"${p.subject}" is opgeslagen bij "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Boeking heeft controle nodig',
+      body: `"${p.subject}" kon niet aan een reis worden gekoppeld (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Nieuwe TREK-versie beschikbaar',
       body: `TREK ${p.version} is nu beschikbaar. Bezoek het beheerderspaneel om bij te werken.`,

@@ -48,6 +48,14 @@ const pl: NotificationLocale = {
       title: `Pakowanie: ${p.category}`,
       body: `${p.actor} przypisał Cię do kategorii "${p.category}" w "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Rezerwacja zaimportowana',
+      body: `"${p.subject}" przypisano do "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Rezerwacja wymaga sprawdzenia',
+      body: `Nie udało się dopasować "${p.subject}" do żadnej podróży (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Nowa wersja TREK dostępna',
       body: `TREK ${p.version} jest teraz dostępny. Odwiedź panel administracyjny, aby zaktualizować.`,

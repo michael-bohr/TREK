@@ -48,6 +48,14 @@ const it: NotificationLocale = {
       title: `Bagagli: ${p.category}`,
       body: `${p.actor} ti ha assegnato alla categoria "${p.category}" in "${p.trip}".`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Prenotazione importata',
+      body: `"${p.subject}" è stata archiviata in "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Prenotazione da rivedere',
+      body: `Non è stato possibile abbinare "${p.subject}" a un viaggio (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Nuova versione TREK disponibile',
       body: `TREK ${p.version} è ora disponibile. Visita il pannello di amministrazione per aggiornare.`,

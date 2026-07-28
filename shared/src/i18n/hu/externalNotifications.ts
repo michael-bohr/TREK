@@ -48,6 +48,14 @@ const hu: NotificationLocale = {
       title: `Csomagolás: ${p.category}`,
       body: `${p.actor} hozzárendelte Önt a "${p.category}" csomagolási kategóriához a(z) "${p.trip}" utazásban.`,
     }),
+    mail_ingest_imported: (p) => ({
+      title: 'Foglalás importálva',
+      body: `"${p.subject}" hozzá lett rendelve ehhez: "${p.trip}".`,
+    }),
+    mail_ingest_pending: (p) => ({
+      title: 'Foglalás ellenőrzésre vár',
+      body: `"${p.subject}" nem volt hozzárendelhető egy úthoz sem (${p.reason}).`,
+    }),
     version_available: (p) => ({
       title: 'Új TREK verzió érhető el',
       body: `A TREK ${p.version} elérhető. Látogasson el az adminisztrációs panelre a frissítéshez.`,
