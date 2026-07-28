@@ -68,3 +68,27 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect((items[0].metadata as any).legs).toBeUndefined();
   });
 });
+
+describe('kitinerary mapper — rental car endpoints', () => {
+  it('carries pickup/dropoff addresses on the endpoints as the geocode fallback', () => {
+    const { items } = mapReservations([
+      {
+        '@type': 'RentalCarReservation',
+        reservationNumber: 'C486561570',
+        reservationFor: { name: 'Fullsize SUV', rentalCompany: { name: 'Budget' } },
+        pickupTime: '2026-11-29T16:00:00',
+        dropoffTime: '2026-11-30T16:00:00',
+        pickupLocation: { name: 'Miami Intl Airport', address: '3900 Nw 25th St, Miami, FL' },
+        // Mangled venue name next to a geocodable address — the real-world case
+        // the fallback exists for.
+        dropoffLocation: { name: 'Jacksonville Intl Apo', address: '2400 Yankee Clipper Dr, Jacksonville, FL' },
+      },
+    ] as any, 'test.json');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].endpoints).toEqual([
+      expect.objectContaining({ role: 'from', name: 'Miami Intl Airport', address: '3900 Nw 25th St, Miami, FL' }),
+      expect.objectContaining({ role: 'to', name: 'Jacksonville Intl Apo', address: '2400 Yankee Clipper Dr, Jacksonville, FL' }),
+    ]);
+  });
+});

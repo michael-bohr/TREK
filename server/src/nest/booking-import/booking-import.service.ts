@@ -190,15 +190,22 @@ export class BookingImportService {
 
         // Geocode transport endpoints (stations/stops/terminals/rental desks) that
         // arrived without coords, so the route draws and map pins appear. The LLM
-        // and kitinerary rarely supply geo for non-airport endpoints.
+        // and kitinerary rarely supply geo for non-airport endpoints. Try the
+        // endpoint name first, then fall back to its address (e.g. a rental
+        // desk's truncated "Jacksonville Intl Apo" fails but the street address
+        // next to it resolves fine).
         if (Array.isArray(reservationData.endpoints)) {
           for (const ep of reservationData.endpoints) {
-            if ((ep.lat == null || ep.lng == null) && ep.name) {
+            if ((ep.lat == null || ep.lng == null) && (ep.name || ep.address)) {
               try {
-                const hit = (await searchNominatim(ep.name))[0];
-                if (hit?.lat != null && hit?.lng != null) {
-                  ep.lat = hit.lat;
-                  ep.lng = hit.lng;
+                const queries = [ep.name, ep.address].filter((q): q is string => !!q);
+                for (const q of queries) {
+                  const hit = (await searchNominatim(q))[0];
+                  if (hit?.lat != null && hit?.lng != null) {
+                    ep.lat = hit.lat;
+                    ep.lng = hit.lng;
+                    break;
+                  }
                 }
               } catch {
                 // geocoding failure is non-fatal
@@ -206,8 +213,12 @@ export class BookingImportService {
             }
           }
           // Persist only coord'd endpoints (reservation_endpoints needs lat/lng);
-          // ungeocodable ones still appeared in the preview's From→To.
-          reservationData.endpoints = reservationData.endpoints.filter((ep) => ep.lat != null && ep.lng != null);
+          // ungeocodable ones still appeared in the preview's From→To. `address`
+          // is a transient geocode aid only — reservation_endpoints has no
+          // address column, so it must never reach createReservation.
+          reservationData.endpoints = reservationData.endpoints
+            .filter((ep) => ep.lat != null && ep.lng != null)
+            .map(({ address: _address, ...rest }) => rest);
         }
 
         // Build create_accommodation for hotel reservations.
