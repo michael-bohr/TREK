@@ -57,7 +57,8 @@ function cleanPdfText(text: string): string {
 /**
  * Extract text from a booking file for the OpenAI-compatible/local LLM path
  * (Ollama can't ingest PDFs or `file` parts, so everything becomes text).
- *  - txt/html/htm/eml → decoded (markup stripped)
+ *  - txt/html/htm     → decoded (markup stripped)
+ *  - eml              → MIME-parsed to the message body (subject + text/html, markup stripped)
  *  - pdf              → embedded text layer via pdf-parse
  *  - anything else    → best-effort UTF-8 decode
  * A scanned/image-only PDF yields empty text — that case needs a vision provider
