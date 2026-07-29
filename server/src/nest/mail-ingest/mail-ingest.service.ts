@@ -4,6 +4,7 @@ import { db } from '../../db/database';
 import { encrypt_api_key, decrypt_api_key } from '../../services/apiKeyCrypto';
 import { createTrip, generateDays } from '../../services/tripService';
 import { resyncReservationDays } from '../../services/reservationService';
+import { checkSsrf } from '../../utils/ssrfGuard';
 import { BookingImportService } from '../booking-import/booking-import.service';
 import { ImapProvider, type RawMessage } from './imap.provider';
 import { isBookingCandidate } from './candidate-filter';
@@ -115,6 +116,7 @@ export class MailIngestService {
    *  cursor seeded so the first tick only sees NEW mail (no history flood). */
   async addSource(userId: number, input: MailSourceInput): Promise<SafeSource> {
     const cfg = this.cfgFromInput(input);
+    await this.assertHostAllowed(cfg.host, cfg.port);
     const provider = new ImapProvider(cfg);
     await provider.testConnection();
     const uidNext = await provider.uidNext();
@@ -151,7 +153,9 @@ export class MailIngestService {
   /** Test arbitrary credentials without saving (the "Test connection" button). */
   async testConfig(input: MailSourceInput): Promise<{ ok: boolean; error?: string }> {
     try {
-      await new ImapProvider(this.cfgFromInput(input)).testConnection();
+      const cfg = this.cfgFromInput(input);
+      await this.assertHostAllowed(cfg.host, cfg.port);
+      await new ImapProvider(cfg).testConnection();
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -166,6 +170,19 @@ export class MailIngestService {
       password: input.password,
       folder: (input.folder || 'INBOX').trim(),
     };
+  }
+
+  /** SSRF-guard the user-supplied IMAP host before any socket ever opens to it —
+   *  covers both the save path (addSource) and the "Test connection" path
+   *  (testConfig), same host input, same risk. checkSsrf() only needs a URL to
+   *  extract the hostname for DNS resolution + private/blocked-IP
+   *  classification; it never issues a request, so the https:// scheme and the
+   *  port here are just a carrier for that hostname, not a real HTTP call. */
+  private async assertHostAllowed(host: string, port: number): Promise<void> {
+    const ssrf = await checkSsrf(`https://${host}:${port}`);
+    if (!ssrf.allowed) {
+      throw new Error(ssrf.error ?? 'Connection to this mail server is not allowed');
+    }
   }
 
   private providerFor(source: SourceRow): ImapProvider {

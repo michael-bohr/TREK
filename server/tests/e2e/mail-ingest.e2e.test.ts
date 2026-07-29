@@ -47,6 +47,15 @@ const { db } = vi.hoisted(() => {
 });
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
+// SSRF guard (Fix 3): this harness has no real network/DNS access, so the real
+// checkSsrf() would fail closed with ENOTFOUND for every host, unrelated to
+// what this suite covers (dedupe/candidate-filter/persistence wiring). Its own
+// DNS-resolution and private-IP classification is covered by
+// tests/unit/utils/ssrfGuard.test.ts and tests/unit/nest/mail-ingest/ssrf-guard.test.ts.
+vi.mock('../../src/utils/ssrfGuard', () => ({
+  checkSsrf: vi.fn().mockResolvedValue({ allowed: true, isPrivate: false, resolvedIp: '203.0.113.10' }),
+}));
+
 // Fake IMAP provider: scanSince/fetchNew return whatever the test queued.
 const { queued } = vi.hoisted(() => ({ queued: { current: [] as unknown[] } }));
 vi.mock('../../src/nest/mail-ingest/imap.provider', () => ({
