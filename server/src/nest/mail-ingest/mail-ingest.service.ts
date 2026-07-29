@@ -73,6 +73,15 @@ export interface ActivityRow {
 export class MailIngestService {
   constructor(private readonly bookingImport: BookingImportService) {}
 
+  // Re-entrancy guard for runTick, mirroring airtrailSync's `running` flag: the
+  // cron fires every 5 minutes regardless of how long the previous tick is
+  // taking, and a source with a large backlog (IMAP fetch + kitinerary + an
+  // optional LLM call + geocoding) can outlast that interval. Without this,
+  // two overlapping runTick() calls can both pass the seen() dedupe check on
+  // the same message before either one's confirm() writes the log row,
+  // double-importing it.
+  private running = false;
+
   // ── Source CRUD ─────────────────────────────────────────────────────────
 
   private toSafe(r: SourceRow): SafeSource {
@@ -198,23 +207,30 @@ export class MailIngestService {
   // ── Ingestion ───────────────────────────────────────────────────────────
 
   /** Scheduler entrypoint: poll every enabled source whose interval has elapsed.
-   *  Sources run sequentially; one bad mailbox never blocks the others. */
+   *  Sources run sequentially; one bad mailbox never blocks the others. Guarded
+   *  against overlapping runs — see the `running` field above. */
   async runTick(): Promise<void> {
-    const due = db
-      .prepare(
-        `SELECT * FROM mail_sources
-         WHERE enabled = 1
-           AND (last_polled_at IS NULL
-                OR last_polled_at <= datetime('now', '-' || poll_interval_minutes || ' minutes'))
-         ORDER BY id`,
-      )
-      .all() as SourceRow[];
-    for (const source of due) {
-      try {
-        await this.pollSource(source);
-      } catch (err) {
-        console.error(`[mail-ingest] source ${source.id} poll failed:`, err instanceof Error ? err.message : err);
+    if (this.running) return;
+    this.running = true;
+    try {
+      const due = db
+        .prepare(
+          `SELECT * FROM mail_sources
+           WHERE enabled = 1
+             AND (last_polled_at IS NULL
+                  OR last_polled_at <= datetime('now', '-' || poll_interval_minutes || ' minutes'))
+           ORDER BY id`,
+        )
+        .all() as SourceRow[];
+      for (const source of due) {
+        try {
+          await this.pollSource(source);
+        } catch (err) {
+          console.error(`[mail-ingest] source ${source.id} poll failed:`, err instanceof Error ? err.message : err);
+        }
       }
+    } finally {
+      this.running = false;
     }
   }
 
