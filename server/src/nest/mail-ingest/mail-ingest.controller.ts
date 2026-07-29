@@ -2,15 +2,17 @@ import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Query
 import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { MailIngestAddonGuard } from './mail-ingest-addon.guard';
 import { MailIngestSourceDto, MailIngestSourceEnabledDto } from './mail-ingest.dto';
 import { MailIngestService } from './mail-ingest.service';
 
 /**
  * Per-user mail-source management + the manual "Catch up" trigger. Polling itself
- * runs on the scheduler tick (startMailIngest), not here.
+ * runs on the scheduler tick (startMailIngest), not here. The route group is
+ * gated on the `mail_ingest` addon (404 when disabled), same as AirTrail.
  */
 @Controller('api/mail-ingest')
-@UseGuards(JwtAuthGuard)
+@UseGuards(MailIngestAddonGuard, JwtAuthGuard)
 export class MailIngestController {
   constructor(private readonly mailIngest: MailIngestService) {}
 

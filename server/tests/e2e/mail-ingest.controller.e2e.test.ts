@@ -22,6 +22,7 @@ import { Test } from '@nestjs/testing';
 import type { ExecutionContext, INestApplication } from '@nestjs/common';
 import { MailIngestController } from '../../src/nest/mail-ingest/mail-ingest.controller';
 import { MailIngestService } from '../../src/nest/mail-ingest/mail-ingest.service';
+import { MailIngestAddonGuard } from '../../src/nest/mail-ingest/mail-ingest-addon.guard';
 import { JwtAuthGuard } from '../../src/nest/auth/jwt-auth.guard';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -55,6 +56,12 @@ describe('MailIngestController e2e (real ZodValidationPipe, mocked service)', ()
         },
       ],
     })
+      // The addon gate itself (Fix 1) is covered end-to-end by
+      // mail-ingest-addon.e2e.test.ts against the REAL guard; neutralize it
+      // here so this suite stays scoped to the Zod body-contract behaviour it
+      // already owned before that guard existed.
+      .overrideGuard(MailIngestAddonGuard)
+      .useValue({ canActivate: () => true })
       .overrideGuard(JwtAuthGuard)
       .useValue({
         canActivate: (ctx: ExecutionContext) => {
