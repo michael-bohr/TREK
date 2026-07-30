@@ -173,11 +173,12 @@ export class MailIngestService {
   }
 
   /** SSRF-guard the user-supplied IMAP host before any socket ever opens to it —
-   *  covers both the save path (addSource) and the "Test connection" path
-   *  (testConfig), same host input, same risk. checkSsrf() only needs a URL to
-   *  extract the hostname for DNS resolution + private/blocked-IP
-   *  classification; it never issues a request, so the https:// scheme and the
-   *  port here are just a carrier for that hostname, not a real HTTP call. */
+   *  covers the save path (addSource), the "Test connection" path (testConfig),
+   *  and, via providerFor(), the scheduled poll and "Catch up" too. Same host
+   *  input, same risk on every path. checkSsrf() only needs a URL to extract
+   *  the hostname for DNS resolution + private/blocked-IP classification; it
+   *  never issues a request, so the https:// scheme and the port here are just
+   *  a carrier for that hostname, not a real HTTP call. */
   private async assertHostAllowed(host: string, port: number): Promise<void> {
     const ssrf = await checkSsrf(`https://${host}:${port}`);
     if (!ssrf.allowed) {
@@ -185,7 +186,12 @@ export class MailIngestService {
     }
   }
 
-  private providerFor(source: SourceRow): ImapProvider {
+  /** Re-checked on every use (not just at addSource time) because the host is
+   *  only a hostname at rest — DNS can re-resolve to a different address (e.g.
+   *  rebinding to an internal IP) between when a source was saved and when the
+   *  scheduler or "Catch up" actually opens a socket to it. */
+  private async providerFor(source: SourceRow): Promise<ImapProvider> {
+    await this.assertHostAllowed(source.host, source.port);
     return new ImapProvider({
       host: source.host,
       port: source.port,
@@ -252,7 +258,7 @@ export class MailIngestService {
   }
 
   private async pollSource(source: SourceRow): Promise<IngestCounts> {
-    const provider = this.providerFor(source);
+    const provider = await this.providerFor(source);
     const sinceUid = source.last_uid ?? Math.max(0, (await provider.uidNext()) - 1);
     const messages = await provider.fetchNew(sinceUid);
     const counts = await this.ingestMessages(source, messages);
@@ -267,7 +273,8 @@ export class MailIngestService {
   async catchUp(userId: number, sourceId: number | string, days: number): Promise<IngestCounts> {
     const source = this.getRow(userId, sourceId);
     if (!source) throw new Error('Mail source not found');
-    const messages = await this.providerFor(source).scanSince(days);
+    const provider = await this.providerFor(source);
+    const messages = await provider.scanSince(days);
     const counts = await this.ingestMessages(source, messages);
     // Record the check (so the UI shows "last checked") and advance the cursor past
     // what we scanned so the next tick won't re-fetch it (dedupe covers re-runs anyway).

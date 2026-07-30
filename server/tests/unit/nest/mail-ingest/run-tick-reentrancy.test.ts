@@ -45,6 +45,14 @@ const { db } = vi.hoisted(() => {
 });
 vi.mock('../../../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
+// This suite is scoped to the re-entrancy guard (Fix 2), not the SSRF guard
+// (Fix 3) that providerFor() now also runs on every poll — that path is
+// covered separately by ssrf-guard.test.ts. Stub it to always allow so a real
+// DNS lookup on 'imap.example.com' (unavailable in this sandbox, and
+// unrelated to what this file tests) can't fail the tick closed.
+const { checkSsrf } = vi.hoisted(() => ({ checkSsrf: vi.fn().mockResolvedValue({ allowed: true, isPrivate: false }) }));
+vi.mock('../../../../src/utils/ssrfGuard', () => ({ checkSsrf }));
+
 // Fake IMAP provider: fetchNew() counts calls and, on the first call, blocks
 // on a gate the test controls — this is what lets us deterministically start
 // tick 1, confirm it's genuinely in flight, then fire tick 2 on top of it.
